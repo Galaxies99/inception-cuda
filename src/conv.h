@@ -16,3 +16,6 @@ class BasicConvLayer {
         BasicConvLayer(int _in_channels, int _out_channels, int _kernel_size, int _size);
         ~ BasicConvLayer();
 }
+
+__global__ conv_forward(...);
+__global__ conv_backward(...);
