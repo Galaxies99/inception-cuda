@@ -11,12 +11,12 @@ class ConvolutionLayer {
         int in_channels, out_channels, kernel_size, stride, padding;
         int size, out_size;
         int channel_N, kernel_N, output_N;
-        float *weight, *bias, *output, *grad_weight, *grad_bias, *grad_output;
+        float *weight, *bias, *output;
     
     public:
         ConvolutionLayer(int _in_channels, int _out_channels, int _size, int _kernel_size, int _stride, int _padding);
         void basic_forward(dim3 grid, dim3 block, float *input);
-        void reset_params(void);
+        void set_params(bool init, float *h_weight, float *h_bias);
         void clear_grad(void);
         void clear(void);
         ~ ConvolutionLayer();

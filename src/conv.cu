@@ -16,10 +16,7 @@ ConvolutionLayer :: ConvolutionLayer(int _in_channels, int _out_channels, int _s
     cudaMalloc(&weight, sizeof(float) * channel_N * kernel_N);
     cudaMalloc(&bias, sizeof(float) * channel_N);
     cudaMalloc(&output, sizeof(float) * output_N);
-    cudaMalloc(&grad_weight, sizeof(float) * channel_N * kernel_N);
-    cudaMalloc(&grad_bias, sizeof(float) * channel_N);
-    cudaMalloc(&grad_output, sizeof(float) * output_N);
-    reset_params();
+    set_params();
 }
 
 ConvolutionLayer :: ~ConvolutionLayer() {
@@ -71,25 +68,25 @@ __global__ void conv_basic_bias_forward(float *input, float *output, float *bias
     }
 }
 
-void ConvolutionLayer :: basic_forward(dim3 grid, dim3 block, float *input) {
+float* ConvolutionLayer :: basic_forward(dim3 grid, dim3 block, float *input) {
     conv_basic_weight_forward <<<grid, block>>> (input, output, weight, in_channels, out_channels, size, out_size, kernel_size, stride, padding);
     conv_basic_bias_forward <<<grid, block>>> (output, output, bias, out_channels, out_size);
+    return output;
 }
 
-void ConvolutionLayer :: reset_params(void) {
-    for (int i = 0; i < channel_N; ++ i) {
-        bias[i] = init_rand();
-        for (int j = 0; j < kernel_N; ++ j)
-            weight[i * kernel_N + j] = init_rand();
+void ConvolutionLayer :: set_params(bool init = true, float *h_weight = nullptr, float *h_bias = nullptr) {
+    if (init) {
+        for (int i = 0; i < channel_N; ++ i) {
+            bias[i] = init_rand();
+            for (int j = 0; j < kernel_N; ++ j)
+                weight[i * kernel_N + j] = init_rand();
+        }
+    } else {
+	    cudaMemcpy(weight, h_weight, sizeof(float) * channel_N * kernel_N, cudaMemcpyHostToDevice);
+        cudaMemcpy(bias, h_bias, sizeof(float) * channel_N, cudaMemcpyHostToDevice);
     }
 }
 
 void ConvolutionLayer :: clear(void) {
     cudaMemset(output, 0x00, sizeof(float) * output_N);
-}
-
-void ConvolutionLayer :: clear_grad(void) {
-    cudaMemset(grad_weight, 0x00, sizeof(float) * channel_N * kernel_N);
-    cudaMemset(grad_bias, 0x00, sizeof(float) * channel_N);
-    cudaMemset(grad_output, 0x00, sizeof(float) * output_N);
 }
