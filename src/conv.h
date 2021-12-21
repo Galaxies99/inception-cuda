@@ -1,21 +1,26 @@
-# include <cuda.h>
-
 # ifndef _LAYER_H_
 # define _LAYER_H_
+# include "cuda_runtime.h"
+# include "utils.h"
 # endif
 
 
-// Convolution Layer with stride 1.
-class BasicConvLayer {
+// Convolution Layer (Square)
+class ConvolutionLayer {
     private:
-        int kernel_size, in_channels, out_channels;
-        int size;
-        float *weight, *bias;
+        int in_channels, out_channels, kernel_size, stride, padding;
+        int size, out_size;
+        int channel_N, kernel_N, output_N;
+        float *weight, *bias, *output, *grad_weight, *grad_bias, *grad_output;
     
     public:
-        BasicConvLayer(int _in_channels, int _out_channels, int _kernel_size, int _size);
-        ~ BasicConvLayer();
+        ConvolutionLayer(int _in_channels, int _out_channels, int _size, int _kernel_size, int _stride, int _padding);
+        void basic_forward(dim3 grid, dim3 block, float *input);
+        void reset_params(void);
+        void clear_grad(void);
+        void clear(void);
+        ~ ConvolutionLayer();
 }
 
-__global__ conv_forward(...);
-__global__ conv_backward(...);
+__global__ void conv_basic_weight_forward(float*, float*, float*, const int, const int, const int, const int, const int, const int);
+__global__ void conv_basic_bias_forward(float*, float*, float*, const int, const int);
