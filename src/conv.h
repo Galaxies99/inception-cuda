@@ -5,22 +5,22 @@
 # endif
 
 
-// Convolution Layer (Square)
+// Convolution
 class ConvolutionLayer {
     private:
-        int in_channels, out_channels, kernel_size, stride, padding;
-        int size, out_size;
-        int channel_N, kernel_N, output_N;
-        float *weight, *bias, *output;
+        int in_channels, out_channels, kernel_size_r, kernel_size_c, stride_r, stride_c, padding_r, padding_c;
+        int size_r, size_c, out_size_r, out_size_c;
+        int channel_N, kernel_N, input_N, output_N, total_N;
+        float *weight, *bias;
     
     public:
-        ConvolutionLayer(int _in_channels, int _out_channels, int _size, int _kernel_size, int _stride, int _padding);
-        void basic_forward(dim3 grid, dim3 block, float *input);
-        void set_params(bool init, float *h_weight, float *h_bias);
-        void clear_grad(void);
-        void clear(void);
+        ConvolutionLayer(int, int, int, int, int, int, int, int, int, int);
+        float* basic_forward(dim3, dim3, float*, const int);
+        float* 
+        void set_params(bool, float*, float*);
         ~ ConvolutionLayer();
 }
 
-__global__ void conv_basic_weight_forward(float*, float*, float*, const int, const int, const int, const int, const int, const int);
-__global__ void conv_basic_bias_forward(float*, float*, float*, const int, const int);
+void conv_forward_cpu(float*, float*, const int, const ConvolutionLayer&);
+__global__ void conv_forward_basic_weight(float*, float*, const int, const ConvolutionLayer&);
+__global__ void conv_forward_basic_bias(float*, float*, const int, const ConvolutionLayer&);
