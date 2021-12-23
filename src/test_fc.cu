@@ -33,7 +33,7 @@ int main() {
         cout << cuda_output_device[i] << "        " << cpu_output[i] << "        " << max_error << endl;
     }
     cout << "Max Error = " << max_error << endl;
-    if (max_error > 0.01) cout << "Incorrect.";
+    if (max_error > 0.01) cout << "Incorrect." << endl;
     else cout << "Correct." << endl;
     return 0;
 }
