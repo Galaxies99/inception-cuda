@@ -24,7 +24,7 @@ int main() {
     cudaMemcpy(cuda_input, input, sizeof(float) * batch_size * in_features, cudaMemcpyHostToDevice);
     float *cuda_output = fc.basic_forward(grid, block, cuda_input, batch_size);
     float *cuda_output_device;
-    cuda_output_device = (float*) malloc (sizeof(float) * out_features);
+    cuda_output_device = (float*) malloc (sizeof(float) * batch_size * out_features);
     cudaMemcpy(cuda_output_device, cuda_output, sizeof(float) * batch_size * out_features, cudaMemcpyDeviceToHost);
 
     float max_error = 0.0;
