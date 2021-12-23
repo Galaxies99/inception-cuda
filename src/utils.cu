@@ -1,7 +1,7 @@
 # include "utils.h"
 
 
-__device__ float init_rand(void) {
+float init_rand(void) {
     return 0.5f - float(rand()) / float(RAND_MAX);
 }
 

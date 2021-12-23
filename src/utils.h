@@ -6,6 +6,6 @@
 # include <stdio.h>
 # endif
 
-__device__ float init_rand(void);
+float init_rand(void);
 __device__ float activation_sigmoid(float);
 __device__ float activation_relu(float);

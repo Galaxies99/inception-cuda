@@ -1,7 +1,7 @@
 # include "conv.h"
 
 // Construction function of convolution layer.
-ConvolutionLayer :: ConvolutionLayer(int _in_channels, int _out_channels, int _size_r, int _size_c, int _kernel_size_r = 1, int _kernel_size_c = 1, int _stride_r = 1, int _stride_c = 1, int _padding_r = 0, int _padding_c = 0) {
+ConvolutionLayer :: ConvolutionLayer(int _in_channels, int _out_channels, int _size_r, int _size_c, int _kernel_size_r, int _kernel_size_c, int _stride_r, int _stride_c, int _padding_r, int _padding_c) {
     in_channels = _in_channels;
     out_channels = _out_channels;
     kernel_size_r = _kernel_size_r;
@@ -21,8 +21,8 @@ ConvolutionLayer :: ConvolutionLayer(int _in_channels, int _out_channels, int _s
     input_N = in_channels * size_r * size_c;
     total_N = kernel_N * channel_N;
 
-    cudaMalloc(&weight, sizeof(float) * channel_N * kernel_N);
-    cudaMalloc(&bias, sizeof(float) * channel_N);
+    cudaMalloc((void **)&weight, sizeof(float) * channel_N * kernel_N);
+    cudaMalloc((void **)&bias, sizeof(float) * out_channels);
     set_params();
 }
 
@@ -30,77 +30,119 @@ ConvolutionLayer :: ConvolutionLayer(int _in_channels, int _out_channels, int _s
 ConvolutionLayer :: ~ConvolutionLayer() {
     cudaFree(weight);
     cudaFree(bias);
-    cudaFree(output);
+    if (h_weight != NULL) free(h_weight);
+    if (h_bias != NULL) free(h_bias);
 }
 
 // Convolution forward (cpu)
-void conv_forward_cpu(float* input, float* output, const int batch_size, const ConvolutionLayer &layer) {
-    
+void conv_forward_cpu(float* input, float *output, float *weight, float *bias, const int batch_size, const int in_channels, const int out_channels, const int size_r, const int size_c, const int out_size_r, const int out_size_c, const int kernel_size_r, const int kernel_size_c, const int stride_r, const int stride_c, const int padding_r, const int padding_c) {
+    const int output_N = out_channels * out_size_r * out_size_c;
+    const int input_N = in_channels * size_r * size_c;
+    for (int b = 0; b < batch_size; ++ b) {
+        for (int out_ch = 0; out_ch < out_channels; ++ out_ch)
+            for (int r = 0; r < out_size_r; ++ r)
+                for (int c = 0; c < out_size_c; ++ c) {
+                    output[b * output_N + (out_ch * out_size_r + r) * out_size_c + c] = bias[out_ch];
+                    for (int kr = 0; kr < kernel_size_r; ++ kr) {
+                        for (int kc = 0; kc < kernel_size_c; ++ kc) {
+                            const int input_r = r * stride_r + kr - padding_r;
+                            const int input_c = c * stride_c + kc - padding_c;
+                            if (input_r >= 0 && input_r < size_r && input_c >= 0 && input_c < size_c) {
+                                for (int in_ch = 0; in_ch < in_channels; ++ in_ch) {
+                                    output[b * output_N + (out_ch * out_size_r + r) * out_size_c + c] += weight[((out_ch * in_channels + in_ch) * kernel_size_r + kr) * kernel_size_c + kc] * input[b * input_N + (in_ch * size_r + input_r) * size_c + input_c];
+                                }
+                            }
+                        }
+                    }
+                }
+    }
+}
+
+float* ConvolutionLayer :: cpu_forward(float *input, const int batch_size) {
+    float *output;
+    output = (float *) malloc (sizeof(float) * batch_size * output_N);
+    conv_forward_cpu(input, output, h_weight, h_bias, batch_size, in_channels, out_channels, size_r, size_c, out_size_r, out_size_c, kernel_size_r, kernel_size_c, stride_r, stride_c, padding_r, padding_c);
+    return output;
 }
 
 // Convolution forward (weight) (basic, no optimization)
-__global__ void conv_forward_basic_weight(float *input, float *output, const int batch_size, const ConvolutionLayer &layer) {
-    const int batch_id = blockIdx.x;
-    const int thread_pos = blockIdx.y * blockDim.y + threadIdx.x;
-    const int total_threads = blockDim.y * gridDim.x;
-    const int offset_r = (layer.kernel_size_r - 1) / layer.stride_r - 2 * layer.padding_r;
-    const int offset_c = (layer.kernel_size_c - 1) / layer.stride_c - 2 * layer.padding_c;
-    const int begin_idx = layer.total_N * thread_pos / total_threads;
-    const int end_idx = layer.total_N * (thread_pos + 1) / total_threads;
+__global__ void conv_forward_basic_weight(float *input, float *output, float *weight, const int batch_size, const int in_channels, const int out_channels, const int size_r, const int size_c, const int out_size_r, const int out_size_c, const int kernel_size_r, const int kernel_size_c, const int stride_r, const int stride_c, const int padding_r, const int padding_c) {
+    const int batch_id = blockIdx.y;
+    const int thread_pos = blockIdx.x * blockDim.x + threadIdx.x;
+    const int total_threads = blockDim.x * gridDim.x;
+    const int output_N = out_channels * out_size_r * out_size_c;
+    const int input_N = in_channels * size_r * size_c;
+    const int total_N = kernel_size_r * kernel_size_c * out_size_r * out_size_c * in_channels * out_channels;
+    const int begin_idx = total_N * thread_pos / total_threads;
+    const int end_idx = total_N * (thread_pos + 1) / total_threads;
     for (int i = begin_idx; i < end_idx; ++ i) {
         int temp = i;
-        const int i_kernel_c = temp % layer.kernel_size_c;
-        const int i_kernel_r = (temp /= layer.kernel_size_c) % layer.kernel_size_r;
-        const int i_in_channel = (temp /= layer.kernel_size_r) % layer.in_channels;
-        const int i_out_channel = (temp /= layer.in_channels) % layer.out_channels;
-        const int i_out_c = (temp /= layer.out_channels) % layer.out_size_c;
-        const int i_out_r = (temp /= layer.out_size_c) % layer.out_size_r;
-        const int input_c = i_out_c * layer.stride_c + i_kernel_c + offset_c;
-        const int input_r = i_out_r * layer.stride_r + i_kernel_r + offset_r;
-        const int i_channel = i_out_channel * layer.in_channels + i_in_channel;
-        if (input_r >= 0 && input_c < size && output_r >= 0 && output_c < size)
+        const int i_kernel_c = temp % kernel_size_c;
+        const int i_kernel_r = (temp /= kernel_size_c) % kernel_size_r;
+        const int i_in_channel = (temp /= kernel_size_r) % in_channels;
+        const int i_out_channel = (temp /= in_channels) % out_channels;
+        const int i_out_c = (temp /= out_channels) % out_size_c;
+        const int i_out_r = (temp /= out_size_c) % out_size_r;
+        const int input_c = i_out_c * stride_c + i_kernel_c - padding_c;
+        const int input_r = i_out_r * stride_r + i_kernel_r - padding_r;
+        const int i_channel = i_out_channel * in_channels + i_in_channel;
+        if (input_r >= 0 && input_r < size_r && input_c >= 0 && input_c < size_c)
             atomicAdd(
-                &output[((batch_id * layer.output_N + i_out_channel) * layer.out_size_r + i_out_r) * layer.out_size_c + i_out_c], 
-                weight[(i_channel * layer.kernel_size_r + i_kernel_r) * layer.kernel_size_c + i_kernel_c] * input[((batch_id * layer.input_N + i_channel) * layer.size_r + input_r) * layer.size_c + input_c]
+                &output[batch_id * output_N + (i_out_channel * out_size_r + i_out_r) * out_size_c + i_out_c], 
+                weight[(i_channel * kernel_size_r + i_kernel_r) * kernel_size_c + i_kernel_c] * input[batch_id * input_N + (i_in_channel * size_r + input_r) * size_c + input_c]
             );
     }
 }
 
 // Convolution forward (bias) (basic, no optimization)
-__global__ void conv_forward_basic_bias(float *input, float *output, const int batch_size, const ConvolutionLayer &layer) {
-    const int batch_id = blockIdx.x;
-    const int thread_pos = blockIdx.y * blockDim.y + threadIdx.x;
-    const int total_threads = blockDim.y * gridDim.x;
-    const int begin_idx = layer.output_N * thread_pos / total_threads;
-    const int end_idx = layer.output_N * (thread_pos + 1) / total_threads;
+__global__ void conv_forward_basic_bias(float *input, float *output, float *bias, const int batch_size, const int in_channels, const int out_channels, const int size_r, const int size_c, const int out_size_r, const int out_size_c, const int kernel_size_r, const int kernel_size_c, const int stride_r, const int stride_c, const int padding_r, const int padding_c) {
+    const int batch_id = blockIdx.y;
+    const int thread_pos = blockIdx.x * blockDim.x + threadIdx.x;
+    const int total_threads = blockDim.x * gridDim.x;
+    const int output_N = out_channels * out_size_r * out_size_c;
+    const int begin_idx = output_N * thread_pos / total_threads;
+    const int end_idx = output_N * (thread_pos + 1) / total_threads;
     for (int i = begin_idx; i < end_idx; ++ i) {
         int temp = i;
-        const int i_channel = temp % layer.out_channels;
-        const int i_out_c = (temp /= layer.out_channels) % layer.out_size_c;
-        const int i_out_r = (temp /= layer.out_size_c) % layer.out_size_r;
-        output[((batch_id * layer.output_N + i_channel) * layer.out_size_r + i_out_r) * layer.out_size_c + i_out_c] = input[((batch_id * layer.output_N + i_channel) * layer.out_size_r + i_out_r) * layer.out_size_c + i_out_c] + bias[i_channel];
+        const int i_channel = temp % out_channels;
+        const int i_out_c = (temp /= out_channels) % out_size_c;
+        const int i_out_r = (temp /= out_size_c) % out_size_r;
+        output[batch_id * output_N + (i_channel * out_size_r + i_out_r) * out_size_c + i_out_c] = input[batch_id * output_N + (i_channel * out_size_r + i_out_r) * out_size_c + i_out_c] + bias[i_channel];
     }
 }
 
 float* ConvolutionLayer :: basic_forward(dim3 grid, dim3 block, float *input, const int batch_size) {
     float *output;
-    cudaMalloc(&output, sizeof(float) * batch_size * output_N)
-    cudaMemset(output, 0x00, sizeof(float) * batch_size * output_N);
-    conv_forward_basic_weight <<<grid, block>>> (input, output, batch_size, *this);
-    conv_forward_basic_bias <<<grid, block>>> (output, output, batch_size, *this);
+    cudaMalloc((void **)&output, sizeof(float) * batch_size * output_N);
+    cudaMemset(output, 0, sizeof(float) * batch_size * output_N);
+    conv_forward_basic_weight <<<grid, block>>> (input, output, weight, batch_size, in_channels, out_channels, size_r, size_c, out_size_r, out_size_c, kernel_size_r, kernel_size_c, stride_r, stride_c, padding_r, padding_c);
+    conv_forward_basic_bias <<<grid, block>>> (output, output, bias, batch_size, in_channels, out_channels, size_r, size_c, out_size_r, out_size_c, kernel_size_r, kernel_size_c, stride_r, stride_c, padding_r, padding_c);
+    cudaDeviceSynchronize();
     return output;
 }
 
-void ConvolutionLayer :: set_params(bool init = true, float *h_weight = nullptr, float *h_bias = nullptr) {
-    if (init) {
-        for (int i = 0; i < channel_N; ++ i) {
-            bias[i] = init_rand();
-            for (int j = 0; j < kernel_N; ++ j)
-                weight[i * kernel_N + j] = init_rand();
-        }
+void ConvolutionLayer :: set_params(float *_h_weight, float *_h_bias) {
+    if (_h_weight == NULL) {
+        h_weight = (float*) malloc (sizeof(float) * channel_N * kernel_N);
+        for (int i = 0; i < channel_N * kernel_N; ++ i)
+            h_weight[i] = init_rand();
     } else {
-	    cudaMemcpy(weight, h_weight, sizeof(float) * channel_N * kernel_N, cudaMemcpyHostToDevice);
-        cudaMemcpy(bias, h_bias, sizeof(float) * channel_N, cudaMemcpyHostToDevice);
+        if (h_weight != NULL) free(h_weight);
+        h_weight = _h_weight;
     }
+    if (_h_bias == NULL) {
+        h_bias = (float*) malloc (sizeof(float) * out_channels);
+        for (int i = 0; i < out_channels; ++ i)
+            h_bias[i] = init_rand();
+    } else{
+        if (h_bias != NULL) free(h_bias);
+        h_bias = _h_bias;
+    }
+    cudaMemcpy(weight, h_weight, sizeof(float) * channel_N * kernel_N, cudaMemcpyHostToDevice);
+    cudaMemcpy(bias, h_bias, sizeof(float) * out_channels, cudaMemcpyHostToDevice);
 }
 
+void ConvolutionLayer :: get_output_size(int &output_r, int &output_c) {
+    output_r = out_size_r;
+    output_c = out_size_c;
+}
