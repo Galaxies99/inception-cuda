@@ -1,5 +1,5 @@
 # include <cuda.h>
-# include "maxpool.h"
+# include "pooling.h"
 
 
 // batch * channel * height * width
