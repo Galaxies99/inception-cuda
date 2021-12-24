@@ -35,8 +35,7 @@ int main() {
     for (int i = 0; i < batch_size * out_channels * out_size_r * out_size_c; ++ i) 
         max_error = max(max_error, fabs(cuda_output_device[i] - cpu_output[i]));
     cout << "Max Error = " << max_error << endl;
-    if (max_error > 1e-5) cout << "Incorrect.";
-    else cout << "Correct.";
-    return 0;
-    
+    if (max_error > 1e-5) cout << "Incorrect." << endl;
+    else cout << "Correct." << endl;
+    return 0;   
 }

@@ -1,11 +1,9 @@
-# ifndef _LAYER_H_
-# define _LAYER_H_
+# ifndef _CONV_H_
+# define _CONV_H_
 # include <cuda.h>
 # include "cuda_runtime.h"
 # include "utils.h"
-# include <iostream>
 # include <stdio.h>
-using namespace std;
 # endif
 
 
