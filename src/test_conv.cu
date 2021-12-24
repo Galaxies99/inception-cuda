@@ -16,7 +16,7 @@ int main() {
 
     input = (float*) malloc (sizeof(float) * batch_size * in_channels * in_size_r * in_size_c);
     for (int i = 0; i < batch_size * in_channels * in_size_r * in_size_c; ++ i)
-        input[i] = (float) rand() / 32768.0;
+        input[i] = (float) (rand() % 32768) / 32768.0;
     
     float *cpu_output = conv.cpu_forward(input, batch_size);
 
@@ -35,7 +35,7 @@ int main() {
     for (int i = 0; i < batch_size * out_channels * out_size_r * out_size_c; ++ i) 
         max_error = max(max_error, fabs(cuda_output_device[i] - cpu_output[i]));
     cout << "Max Error = " << max_error << endl;
-    if (max_error > 1e-2) cout << "Incorrect.";
+    if (max_error > 1e-5) cout << "Incorrect.";
     else cout << "Correct.";
     return 0;
     

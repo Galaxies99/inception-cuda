@@ -12,7 +12,7 @@ int main() {
     float *input;
     input = (float*) malloc (sizeof(float) * batch_size * in_features);
     for (int i = 0; i < batch_size * in_features; ++i)
-        input[i] = (float) rand() / 32768.0;
+        input[i] = (float) (rand() % 32768) / 32768.0;
     
     float *cpu_output = fc.cpu_forward(input, batch_size);
 
@@ -33,7 +33,7 @@ int main() {
         cout << cuda_output_device[i] << "        " << cpu_output[i] << "        " << max_error << endl;
     }
     cout << "Max Error = " << max_error << endl;
-    if (max_error > 0.01) cout << "Incorrect." << endl;
+    if (max_error > 1e-5) cout << "Incorrect." << endl;
     else cout << "Correct." << endl;
     return 0;
 }
