@@ -8,7 +8,6 @@
 float activation_relu_cpu(float x);
 __device__ float activation_relu(float x);
 __global__ void forward_relu(float *input, float *output, const int size);
-__global__ void forward_relu_inplace(float *input, const int size);
 
 float* cpu_relu(float *input, const int size, bool inplace = true);
 float* relu(dim3 grid, dim3 block, float *input, const int size, bool inplace = true);
