@@ -10,3 +10,4 @@ clean:
 	rm test_fc
 	rm test_pooling
 	rm test_activation
+	rm test_opers
