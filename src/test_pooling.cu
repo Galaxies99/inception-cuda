@@ -6,13 +6,12 @@
 
 using namespace std;
 
-const int batch_size = 4, channels = 2048, size = 4, kernel_size = 3, stride = 1, padding = 1;
+const int batch_size = 8, channels = 2048, size = 17, kernel_size = 3, stride = 1, padding = 1;
 MaxpoolingLayer maxpool(channels, size, kernel_size, stride);
 MeanpoolingLayer meanpool(channels, size, kernel_size, stride, padding);
 const int intput_size = batch_size * channels * size * size;
-const int len = size / stride + (size % stride != 0);
-const int size_padding = size + padding * 2 - kernel_size + 1;
-const int len_mean =  size_padding / stride + (size_padding % stride != 0);
+const int len = (size - kernel_size) / stride + 1;
+const int len_mean =  (size + padding * 2 - kernel_size) / stride + 1;
 const int output_size_max = channels * len * len;
 const int output_size_mean = channels * len_mean * len_mean;
 int maxpool_test() {
@@ -21,11 +20,25 @@ int maxpool_test() {
     input = (double*) malloc (sizeof(double) * batch_size * channels * size * size);
     for (int i = 0; i < batch_size * channels * size * size; ++ i)
         input[i] = (double) (rand() % 32768) / 32768.0;
+
+    // printf("Input:\n");
+    // for(int i = 0; i<batch_size;i++){
+    //     for(int j = 0; j < channels; j++){
+    //         // printf("%d %d\n",i,j);
+    //         printf("------ Batch %d Channel %d ------\n", i, j);
+    //         for(int x=0;x<size;x++){
+    //             for(int y=0;y<size;y++){
+    //                 printf("%0.4f ", input[i*channels*size*size+j*size*size+x*size+y]);
+    //             }
+    //             printf("\n");
+    //         }
+    //     }
+    // }
     
     double *cpu_output = maxpool.cpu_forward(input, batch_size);
 
-    dim3 grid(8, batch_size);
-    dim3 block(32);
+    dim3 grid(1, batch_size);
+    dim3 block(2);
 
     double *cuda_input;
     cudaMalloc((void **)&cuda_input, sizeof(double) * batch_size * channels * size * size);
@@ -34,6 +47,32 @@ int maxpool_test() {
     double *cuda_output_device;
     cuda_output_device = (double*) malloc (sizeof(double) * batch_size * output_size_max);
     cudaMemcpy(cuda_output_device, cuda_output, sizeof(double) * batch_size * output_size_max, cudaMemcpyDeviceToHost);
+
+    // printf("Output:\n");
+    // for(int i = 0; i<batch_size;i++){
+    //     for(int j = 0; j < channels; j++){
+    //         printf("------ Batch %d Channel %d ------\n", i , j);
+    //         for(int x=0;x<len;x++){
+    //             for(int y=0;y<len;y++){
+    //                 printf("%0.4f ", cpu_output[i*channels*len*len+j*len*len+x*len+y]);
+    //             }
+    //             printf("\n");
+    //         }
+    //     }
+    // }
+
+    // printf("Output:\n");
+    // for(int i = 0; i<batch_size;i++){
+    //     for(int j = 0; j < channels; j++){
+    //         printf("------ Batch %d Channel %d ------\n", i , j);
+    //         for(int x=0;x<len;x++){
+    //             for(int y=0;y<len;y++){
+    //                 printf("%0.4f ", cuda_output_device[i*channels*len*len+j*len*len+x*len+y]);
+    //             }
+    //             printf("\n");
+    //         }
+    //     }
+    // }
 
     double max_error = 0.0;
     for (int i = 0; i < batch_size * output_size_max; ++ i) 
