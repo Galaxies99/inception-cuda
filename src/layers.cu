@@ -1,20 +1,20 @@
 # include "layers.h"
 
 
-InceptionLayer2_2 :: InceptionLayer2_2(const int in_channels, const int size) : in_channels(in_channels), size(size), way1(in_channels, 64, size, size), way2_1(in_channels, 48, size, size), way2_2(48, 64, size, size, 5, 5, 1, 1, 2, 2), way3_1(in_channels, 64, size, size), way3_2(64, 96, size, size, 3, 3, 1, 1, 1, 1), way3_3(96, 96, size, size, 3, 3, 1, 1, 1, 1), way4(in_channels, 64, size, size), avgpool(in_channels, size, 3, 1, 1) {
+InceptionLayer2 :: InceptionLayer2(const int in_channels, const int size, const int way4_ch) : in_channels(in_channels), size(size), way4_ch(way4_ch), way1(in_channels, 64, size, size), way2_1(in_channels, 48, size, size), way2_2(48, 64, size, size, 5, 5, 1, 1, 2, 2), way3_1(in_channels, 64, size, size), way3_2(64, 96, size, size, 3, 3, 1, 1, 1, 1), way3_3(96, 96, size, size, 3, 3, 1, 1, 1, 1), way4(in_channels, way4_ch, size, size), avgpool(in_channels, size, 3, 1, 1) {
     out_size = size;
-    out_channels = 64 + 64 + 96 + 64;
+    out_channels = 64 + 64 + 96 + way4_ch;
 }
 
-int InceptionLayer2_2 :: get_out_size() const {
+int InceptionLayer2 :: get_out_size() const {
     return out_size;
 }
 
-int InceptionLayer2_2 :: get_out_channels() const {
+int InceptionLayer2 :: get_out_channels() const {
     return out_channels;
 }
 
-void InceptionLayer2_2 :: set_params(struct InceptionLayer2_2params params) {
+void InceptionLayer2 :: set_params(struct InceptionLayer2params params) {
     way1.set_params(params.way1_w, params.way1_b);
     way2_1.set_params(params.way2_1_w, params.way2_1_b);
     way2_2.set_params(params.way2_2_w, params.way2_2_b);
@@ -24,7 +24,7 @@ void InceptionLayer2_2 :: set_params(struct InceptionLayer2_2params params) {
     way4.set_params(params.way4_w, params.way4_b);
 }
 
-double* InceptionLayer2_2 :: cpu_forward(double *input, const int batch_size) {
+double* InceptionLayer2 :: cpu_forward(double *input, const int batch_size) {
     //way1
     double *way1_o = way1.cpu_forward(input, batch_size);
     cpu_relu(way1_o, batch_size * 64 * size * size);
@@ -46,11 +46,11 @@ double* InceptionLayer2_2 :: cpu_forward(double *input, const int batch_size) {
     //way4
     double *way4_o1 = avgpool.cpu_forward(input, batch_size);
     double *way4_o = way4.cpu_forward(way4_o1, batch_size);
-    cpu_relu(way4_o, batch_size * 64 * size * size);
+    cpu_relu(way4_o, batch_size * way4_ch * size * size);
     free(way4_o1);
     //final
     double *concat_in_final[] = {way1_o, way2_2_o, way3_3_o, way4_o};
-    int concat_ch_final[] = {64, 64, 96, 64};
+    int concat_ch_final[] = {64, 64, 96, way4_ch};
     double *final = cpu_channel_concat(concat_in_final, 4, batch_size, concat_ch_final, size, size);
     free(way1_o);
     free(way2_2_o);
@@ -59,7 +59,7 @@ double* InceptionLayer2_2 :: cpu_forward(double *input, const int batch_size) {
     return final;
 }
 
-double* InceptionLayer2_2 :: gpu_forward(double *input, const int batch_size) {
+double* InceptionLayer2 :: gpu_forward(double *input, const int batch_size) {
     dim3 grid_conv(8, batch_size);
     dim3 block_conv(32);
     dim3 grid_act(32);
@@ -85,11 +85,11 @@ double* InceptionLayer2_2 :: gpu_forward(double *input, const int batch_size) {
     //way4
     double *way4_o1 = avgpool.basic_forward(grid_conv, block_conv, input, batch_size);
     double *way4_o = way4.basic_forward(grid_conv, block_conv, way4_o1, batch_size);
-    relu(grid_act, block_act, way4_o, batch_size * 64 * size * size);
+    relu(grid_act, block_act, way4_o, batch_size * way4_ch * size * size);
     cudaFree(way4_o1);
     //final
     double *concat_in_final[] = {way1_o, way2_2_o, way3_3_o, way4_o};
-    int concat_ch_final[] = {64, 64, 96, 64};
+    int concat_ch_final[] = {64, 64, 96, way4_ch};
     double *final = channel_concat(grid_conv, block_conv, concat_in_final, 4, batch_size, concat_ch_final, size, size);
     cudaFree(way1_o);
     cudaFree(way2_2_o);
@@ -98,7 +98,7 @@ double* InceptionLayer2_2 :: gpu_forward(double *input, const int batch_size) {
     return final;
 }
 
-InceptionLayer2_2 :: ~InceptionLayer2_2() {}
+InceptionLayer2 :: ~InceptionLayer2() {}
 
 InceptionLayer5 :: InceptionLayer5(const int in_channels, const int size) : in_channels(in_channels), size(size), way1_1(in_channels, 192, size, size), way1_2(192, 320, size, size, 3, 3, 2, 2, 0, 0), way2_1(in_channels, 192, size, size), way2_2(192, 192, size, size, 1, 7, 1, 1, 0, 3), way2_3(192, 192, size, size, 7, 1, 1, 1, 3, 0), way2_4(192, 192, size, size, 3, 3, 2, 2, 0, 0), maxpool(in_channels, size, 3, 2) {
     out_size = (size - 3) / 2 + 1;
