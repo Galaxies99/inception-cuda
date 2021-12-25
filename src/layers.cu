@@ -82,7 +82,7 @@ double* InceptionLayer5 :: gpu_forward(double *input, const int batch_size) {
     // final
     double *concat_in_final[] = {way1_o, way2_o, way3_o};
     int concat_ch_final[] = {320, 192, 768};
-    double *final = channel_concat(grid_act, block_act, concat_in_final, 3, batch_size, concat_ch_final, out_size, out_size);
+    double *final = channel_concat(grid_conv, grid_conv, concat_in_final, 3, batch_size, concat_ch_final, out_size, out_size);
     cudaFree(way1_o);
     cudaFree(way2_o);
     cudaFree(way3_o);
@@ -151,8 +151,6 @@ double* InceptionLayer6 :: cpu_forward(double *input, const int batch_size) {
     free(way5_o3);
     // way6
     double *way6_o1 = avgpool.cpu_forward(input, batch_size);
-    for (int i = 0; i < 100; ++ i) cout << way6_o1[i] << ' ';
-    cout << endl;
     double *way6_o = way6.cpu_forward(way6_o1, batch_size);
     cpu_relu(way6_o, batch_size * 192 * size * size);
     free(way6_o1);
@@ -184,7 +182,7 @@ double* InceptionLayer6 :: gpu_forward(double *input, const int batch_size) {
     relu(grid_act, block_act, way3_o2, batch_size * 384 * size * size);
     double *concat_in1[] = {way2_o2, way3_o2};
     int concat_ch1[] = {384, 384};
-    double *way23_o = channel_concat(grid_act, block_act, concat_in1, 2, batch_size, concat_ch1, size, size);
+    double *way23_o = channel_concat(grid_conv, block_conv, concat_in1, 2, batch_size, concat_ch1, size, size);
     cudaFree(way23_o1);
     cudaFree(way2_o2);
     cudaFree(way3_o2);
@@ -199,24 +197,20 @@ double* InceptionLayer6 :: gpu_forward(double *input, const int batch_size) {
     relu(grid_act, block_act, way5_o3, batch_size * 384 * size * size);
     double *concat_in2[] = {way4_o3, way5_o3};
     int concat_ch2[] = {384, 384};
-    double *way45_o = channel_concat(grid_act, block_act, concat_in2, 2, batch_size, concat_ch2, size, size);
+    double *way45_o = channel_concat(grid_conv, block_conv, concat_in2, 2, batch_size, concat_ch2, size, size);
     cudaFree(way45_o1);
     cudaFree(way45_o2);
     cudaFree(way4_o3);
     cudaFree(way5_o3);
     // way6
     double *way6_o1 = avgpool.basic_forward(grid_conv, block_conv, input, batch_size);
-    double *way6_o1_device = (double *) malloc (sizeof(double) * batch_size * in_channels * size * size);
-    cudaMemcpy(way6_o1_device, way6_o1, sizeof(double) * batch_size * in_channels * size * size, cudaMemcpyDeviceToHost);
-    for (int i = 0; i < 100; ++ i) cout << way6_o1_device[i] << ' ';
-    cout << endl;
     double *way6_o = way6.basic_forward(grid_conv, block_conv, way6_o1, batch_size);
     relu(grid_act, block_act, way6_o, batch_size * 192 * size * size);
     cudaFree(way6_o1);
     // final
     double *concat_in_final[] = {way1_o, way23_o, way45_o, way6_o};
     int concat_ch_final[] = {320, 768, 768, 192};
-    double *final = channel_concat(grid_act, block_act, concat_in_final, 4, batch_size, concat_ch_final, size, size);
+    double *final = channel_concat(grid_conv, block_conv, concat_in_final, 4, batch_size, concat_ch_final, size, size);
     cudaFree(way1_o);
     cudaFree(way23_o);
     cudaFree(way45_o);

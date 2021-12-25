@@ -25,13 +25,23 @@ int main() {
     cout << "gpu begin.\n";
     double *cuda_output = layer.gpu_forward(cuda_input, batch_size);
     cout << "gpu end.\n";
+    int out_size = batch_size * out_channels * size * size;
     double *cuda_output_device;
-    cuda_output_device = (double*) malloc (sizeof(double) * batch_size * out_channels * size * size);
-    cudaMemcpy(cuda_output_device, cuda_output, sizeof(double) * batch_size * out_channels * size * size, cudaMemcpyDeviceToHost);
+    cuda_output_device = (double*) malloc (sizeof(double) * out_size);
+    cudaMemcpy(cuda_output_device, cuda_output, sizeof(double) * out_size, cudaMemcpyDeviceToHost);
 
     double max_error = 0.0;
-    for (int i = 0; i < batch_size * out_channels * size * size; ++ i) 
+    for (int i = 0; i < out_size; ++ i) {
+        if (fabs(cuda_output_device[i] - cpu_output[i]) > 2000.0) {
+            int id = i;
+            int c = id % size;
+            int r = (id /= size) % size;
+            int ch = (id /= size) % out_channels;
+            int b = (id /= out_channels) % batch_size;
+            cout << b << ' ' << ch << ' ' << r << ' ' << c << ' ' << "cpu: " << cpu_output[i] << ", gpu:" << cuda_output_device[i] << endl;
+        }
         max_error = max(max_error, fabs(cuda_output_device[i] - cpu_output[i]));
+    }
     cout << "Max Error = " << max_error << endl;
     if (max_error > 1e-5) cout << "Incorrect." << endl;
     else cout << "Correct." << endl;
