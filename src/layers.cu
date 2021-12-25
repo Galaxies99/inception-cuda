@@ -1,6 +1,105 @@
 # include "layers.h"
 
 
+InceptionLayer1 :: InceptionLayer1(const int in_channels, const int size) : in_channels(in_channels), size(size), c_1(in_channels, 32, 299, 299, 3, 3, 2, 2, 0, 0), c_2(32, 32, 149, 149, 3, 3, 1, 1, 0, 0), c_3(32, 64, 147, 147, 3, 3, 1, 1, 1, 1), c_4(64, 80, 73, 73, 1, 1, 1, 1, 0, 0), c_5(80, 192, 73, 73, 3, 3, 1, 1, 0, 0), maxpool(64, size, 3, 2) {
+    out_size = 71;
+    out_channels = 192;
+}
+
+int InceptionLayer1 :: get_out_size() const {
+    return out_size;
+}
+
+int InceptionLayer1 :: get_out_channels() const {
+    return out_channels;
+}
+
+void InceptionLayer1 :: set_params(struct InceptionLayer1params params) {    
+    way1_w = params.way1_w;
+    way1_b = params.way1_b;
+    way2_w = params.way2_w;
+    way2_b = params.way2_b;
+    way3_w = params.way3_w;
+    way3_b = params.way3_b;
+    c_1.set_params(params.c_1_w, params.c_1_b);
+    c_2.set_params(params.c_2_w, params.c_2_b);
+    c_3.set_params(params.c_3_w, params.c_3_b);
+    c_4.set_params(params.c_4_w, params.c_4_b);
+    c_5.set_params(params.c_5_w, params.c_5_b);
+}
+
+double* InceptionLayer1 :: cpu_forward(double *input, const int batch_size) {
+    int input_size = size * size;
+    cpu_linear_transform(input, input_size, way1_w, way1_b);
+    cpu_linear_transform(input + input_size, input_size, way2_w, way2_b);
+    cpu_linear_transform(input + input_size*2, input_size, way3_w, way3_b);
+
+    // center processing
+    double* c_1_o = c_1.cpu_forward(input, batch_size);
+    cpu_relu(c_1_o, batch_size * 32 * 149 * 149);
+
+    double* c_2_o = c_2.cpu_forward(c_1_o, batch_size);
+    cpu_relu(c_2_o, batch_size * 32 * 147 * 147);
+    free(c_1_o);
+
+    double* c_3_o = c_3.cpu_forward(c_2_o, batch_size);
+    cpu_relu(c_3_o, batch_size * 64 * 147 * 147);
+    free(c_2_o);
+
+    double *maxpool_o = maxpool.cpu_forward(c_3_o, batch_size);
+    free(c_3_o);
+
+    double* c_4_o = c_4.cpu_forward(c_3_o, batch_size);
+    cpu_relu(c_4_o, batch_size * 80 * 73 * 73);
+    free(maxpool_o);
+    
+    double* final = c_5.cpu_forward(c_4_o, batch_size);
+    cpu_relu(final, batch_size * 192 * 71 * 71);
+    free(c_4_o);
+
+    return final;
+}
+
+double* InceptionLayer1 :: gpu_forward(double *input, const int batch_size) {
+    dim3 grid_conv(8, batch_size);
+    dim3 block_conv(32);
+    dim3 grid_act(32);
+    dim3 block_act(32);
+
+    int input_size = size * size;
+    linear_transform(grid_act, block_act, input, input_size, way1_w, way1_b);
+    linear_transform(grid_act, block_act, input + input_size, input_size, way2_w, way2_b);
+    linear_transform(grid_act, block_act, input + input_size*2, input_size, way3_w, way3_b);
+
+
+    // center processing
+    double* c_1_o = c_1.basic_forward(grid_conv, block_conv, input, batch_size);
+    relu(grid_act, block_act, c_1_o, batch_size * 32 * 149 * 149);
+
+    double* c_2_o = c_2.cpu_forward(c_1_o, batch_size);
+    relu(grid_act, block_act, c_2_o, batch_size * 32 * 147 * 147);
+    cudaFree(c_1_o);
+
+    double* c_3_o = c_3.cpu_forward(c_2_o, batch_size);
+    relu(grid_act, block_act, c_3_o, batch_size * 64 * 147 * 147);
+    cudaFree(c_2_o);
+
+    double *maxpool_o = maxpool.cpu_forward(c_3_o, batch_size);
+    cudaFree(c_3_o);
+
+    double* c_4_o = c_4.cpu_forward(c_3_o, batch_size);
+    relu(grid_act, block_act, c_4_o, batch_size * 80 * 73 * 73);
+    cudaFree(maxpool_o);
+    
+    double* final = c_5.cpu_forward(c_4_o, batch_size);
+    relu(grid_act, block_act, final, batch_size * 192 * 71 * 71);
+    cudaFree(c_4_o);
+
+    return final;
+}
+
+InceptionLayer1 :: ~InceptionLayer1() {}
+
 InceptionLayer2 :: InceptionLayer2(const int in_channels, const int size, const int way4_ch) : in_channels(in_channels), size(size), way4_ch(way4_ch), way1(in_channels, 64, size, size), way2_1(in_channels, 48, size, size), way2_2(48, 64, size, size, 5, 5, 1, 1, 2, 2), way3_1(in_channels, 64, size, size), way3_2(64, 96, size, size, 3, 3, 1, 1, 1, 1), way3_3(96, 96, size, size, 3, 3, 1, 1, 1, 1), way4(in_channels, way4_ch, size, size), avgpool(in_channels, size, 3, 1, 1) {
     out_size = size;
     out_channels = 64 + 64 + 96 + way4_ch;
