@@ -5,8 +5,8 @@
 # include <iostream>
 using namespace std;
 
-const int batch_size = 4, in_channels = 192, size = 35;
-InceptionLayer2 layer(in_channels, size, 32);
+const int batch_size = 4, in_channels = 288, size = 35;
+InceptionLayer3 layer(in_channels, size);
 
 int main() {
     double *input;
