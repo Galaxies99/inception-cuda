@@ -4,6 +4,7 @@ all:
 	/usr/local/cuda-10.2/bin/nvcc -fmad=false -lcuda -lcublas -lineinfo pooling.cu utils.cu test_pooling.cu -o test_pooling -Wno-deprecated-gpu-targets
 	/usr/local/cuda-10.2/bin/nvcc -fmad=false -lcuda -lcublas -lineinfo activation.cu test_activation.cu -o test_activation -Wno-deprecated-gpu-targets
 	/usr/local/cuda-10.2/bin/nvcc -fmad=false -lcuda -lcublas -lineinfo opers.cu test_opers.cu -o test_opers -Wno-deprecated-gpu-targets 
+	/usr/local/cuda-10.2/bin/nvcc -fmad=false -lcuda -lcublas -lineinfo utils.cu conv.cu fc.cu pooling.cu activation.cu opers.cu layers.cu test_layer6.cu -o ./test_layer6 -Wno-deprecated-gpu-targets 
 
 clean:
 	rm test_conv
@@ -11,3 +12,4 @@ clean:
 	rm test_pooling
 	rm test_activation
 	rm test_opers
+	rm test_layer6
