@@ -69,6 +69,28 @@ class InceptionLayer2 {
         ~InceptionLayer2();
 };
 
+struct InceptionLayer3params {
+    double *way1_w, *way1_b;
+    double *way2_1_w, *way2_1_b;
+    double *way2_2_w, *way2_2_b;
+    double *way2_3_w, *way2_3_b;
+};
+
+class InceptionLayer3 {
+    private:
+        int in_channels, size, out_channels, out_size;
+        ConvolutionLayer way1, way2_1, way2_2, way2_3;
+        MaxpoolingLayer maxpool;
+    public:
+        InceptionLayer3(const int in_channels, const int size);
+        int get_out_size() const;
+        int get_out_channels() const;
+        void set_params(struct InceptionLayer3params params);
+        double* cpu_forward(double *input, const int batch_size);
+        double* gpu_forward(double *input, const int batch_size);
+        ~InceptionLayer3();
+};
+
 struct InceptionLayer5params {
     double *way1_1_w, *way1_1_b;
     double *way1_2_w, *way1_2_b;
