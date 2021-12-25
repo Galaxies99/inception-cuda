@@ -1,8 +1,13 @@
 # include "layers.h"
 
-
-InceptionLayer1 :: InceptionLayer1(const int in_channels, const int size) : in_channels(in_channels), size(size), c_1(in_channels, 32, 299, 299, 3, 3, 2, 2, 0, 0), c_2(32, 32, 149, 149, 3, 3, 1, 1, 0, 0), c_3(32, 64, 147, 147, 3, 3, 1, 1, 1, 1), c_4(64, 80, 73, 73, 1, 1, 1, 1, 0, 0), c_5(80, 192, 73, 73, 3, 3, 1, 1, 0, 0), maxpool(64, size, 3, 2) {
-    out_size = 71;
+InceptionLayer1 :: InceptionLayer1(const int in_channels, const int size) : in_channels(in_channels), size(size), c_1(in_channels, 32, 299, 299, 3, 3, 2, 2, 0, 0), c_2(32, 32, 149, 149, 3, 3, 1, 1, 0, 0), c_3(32, 64, 147, 147, 3, 3, 1, 1, 1, 1), c_4(64, 80, 73, 73, 1, 1, 1, 1, 0, 0), c_5(80, 192, 73, 73, 3, 3, 1, 1, 0, 0), m1(64, 147, 3, 2), m2(192, 71, 3, 2) {
+    way1_w = 0.46;
+    way1_b = -0.02;
+    way2_w = 0.45;
+    way2_b = -0.09;
+    way3_w = 0.45;
+    way3_b = -0.19;
+    out_size = 35;
     out_channels = 192;
 }
 
@@ -29,14 +34,27 @@ void InceptionLayer1 :: set_params(struct InceptionLayer1params params) {
 }
 
 double* InceptionLayer1 :: cpu_forward(double *input, const int batch_size) {
-    int input_size = size * size;
-    cpu_linear_transform(input, input_size, way1_w, way1_b);
-    cpu_linear_transform(input + input_size, input_size, way2_w, way2_b);
-    cpu_linear_transform(input + input_size*2, input_size, way3_w, way3_b);
+    double* slice0 = cpu_gather(input, batch_size, size, in_channels, 0);
+    double* slice1 = cpu_gather(input, batch_size, size, in_channels, 1);
+    double* slice2 = cpu_gather(input, batch_size, size, in_channels, 2);
+    
+    cpu_linear_transform(slice0, batch_size*size*size, way1_w, way1_b);
+    cpu_linear_transform(slice1, batch_size*size*size, way2_w, way2_b);
+    cpu_linear_transform(slice2, batch_size*size*size, way3_w, way3_b);
+
+    double *concat_slice[] = {slice0, slice1, slice2};
+    int channel_list[] = {1, 1, 1};
+    double *input_new = cpu_channel_concat(concat_slice, 3, batch_size, channel_list, size, size);
+    free(slice0);
+    free(slice1);
+    free(slice2);
+
+    // return input_new;
 
     // center processing
-    double* c_1_o = c_1.cpu_forward(input, batch_size);
+    double* c_1_o = c_1.cpu_forward(input_new, batch_size);
     cpu_relu(c_1_o, batch_size * 32 * 149 * 149);
+    free(input_new);
 
     double* c_2_o = c_2.cpu_forward(c_1_o, batch_size);
     cpu_relu(c_2_o, batch_size * 32 * 147 * 147);
@@ -46,16 +64,20 @@ double* InceptionLayer1 :: cpu_forward(double *input, const int batch_size) {
     cpu_relu(c_3_o, batch_size * 64 * 147 * 147);
     free(c_2_o);
 
-    double *maxpool_o = maxpool.cpu_forward(c_3_o, batch_size);
+    double* maxpool_o = m1.cpu_forward(c_3_o, batch_size);
     free(c_3_o);
 
-    double* c_4_o = c_4.cpu_forward(c_3_o, batch_size);
+    double* c_4_o = c_4.cpu_forward(maxpool_o, batch_size);
     cpu_relu(c_4_o, batch_size * 80 * 73 * 73);
     free(maxpool_o);
     
-    double* final = c_5.cpu_forward(c_4_o, batch_size);
-    cpu_relu(final, batch_size * 192 * 71 * 71);
+    double* c_5_o = c_5.cpu_forward(c_4_o, batch_size);
+    cpu_relu(c_5_o, batch_size * 192 * 71 * 71);
     free(c_4_o);
+
+    
+    double* final = m2.cpu_forward(c_5_o, batch_size);
+    free(c_5_o);
 
     return final;
 }
@@ -66,34 +88,51 @@ double* InceptionLayer1 :: gpu_forward(double *input, const int batch_size) {
     dim3 grid_act(32);
     dim3 block_act(32);
 
-    int input_size = size * size;
-    linear_transform(grid_act, block_act, input, input_size, way1_w, way1_b);
-    linear_transform(grid_act, block_act, input + input_size, input_size, way2_w, way2_b);
-    linear_transform(grid_act, block_act, input + input_size*2, input_size, way3_w, way3_b);
+    double* slice0 = gather(grid_conv, block_conv, input, batch_size, size, in_channels, 0);
+    double* slice1 = gather(grid_conv, block_conv, input, batch_size, size, in_channels, 1);
+    double* slice2 = gather(grid_conv, block_conv, input, batch_size, size, in_channels, 2);
 
+    linear_transform(grid_act, block_act, slice0, batch_size*size*size, way1_w, way1_b);
+    linear_transform(grid_act, block_act, slice1, batch_size*size*size, way2_w, way2_b);
+    linear_transform(grid_act, block_act, slice2, batch_size*size*size, way3_w, way3_b);
+
+    
+    double *concat_slice[] = {slice0, slice1, slice2};
+    int channel_list[] = {1, 1, 1};
+    double *input_new = channel_concat(grid_conv, block_conv, concat_slice, 3, batch_size, channel_list, size, size);
+    cudaFree(slice0);
+    cudaFree(slice1);
+    cudaFree(slice2);
+    
+    // return input_new;
 
     // center processing
-    double* c_1_o = c_1.basic_forward(grid_conv, block_conv, input, batch_size);
+    double* c_1_o = c_1.basic_forward(grid_conv, block_conv, input_new, batch_size);
     relu(grid_act, block_act, c_1_o, batch_size * 32 * 149 * 149);
+    cudaFree(input_new);
 
-    double* c_2_o = c_2.cpu_forward(c_1_o, batch_size);
+    double* c_2_o = c_2.basic_forward(grid_conv, block_conv, c_1_o, batch_size);
     relu(grid_act, block_act, c_2_o, batch_size * 32 * 147 * 147);
     cudaFree(c_1_o);
 
-    double* c_3_o = c_3.cpu_forward(c_2_o, batch_size);
+    double* c_3_o = c_3.basic_forward(grid_conv, block_conv, c_2_o, batch_size);
     relu(grid_act, block_act, c_3_o, batch_size * 64 * 147 * 147);
     cudaFree(c_2_o);
-
-    double *maxpool_o = maxpool.cpu_forward(c_3_o, batch_size);
+    // printf("Before maxp.\n");
+    double *maxpool_o = m1.basic_forward(grid_conv, block_conv, c_3_o, batch_size);
     cudaFree(c_3_o);
+    // printf("After maxp.\n");
 
-    double* c_4_o = c_4.cpu_forward(c_3_o, batch_size);
+    double* c_4_o = c_4.basic_forward(grid_conv, block_conv, maxpool_o, batch_size);
     relu(grid_act, block_act, c_4_o, batch_size * 80 * 73 * 73);
     cudaFree(maxpool_o);
     
-    double* final = c_5.cpu_forward(c_4_o, batch_size);
-    relu(grid_act, block_act, final, batch_size * 192 * 71 * 71);
+    double* c_5_o = c_5.basic_forward(grid_conv, block_conv, c_4_o, batch_size);
+    relu(grid_act, block_act, c_5_o, batch_size * 192 * 71 * 71);
     cudaFree(c_4_o);
+    
+    double *final = m2.basic_forward(grid_conv, block_conv, c_5_o, batch_size);
+    cudaFree(c_5_o);
 
     return final;
 }

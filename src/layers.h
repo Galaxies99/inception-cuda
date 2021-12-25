@@ -32,7 +32,7 @@ class InceptionLayer1 {
         double way3_w, way3_b;
         int in_channels, size, out_channels, out_size;
         ConvolutionLayer c_1, c_2, c_3, c_4, c_5;
-        MaxpoolingLayer maxpool;
+        MaxpoolingLayer m1, m2;
     public:
         InceptionLayer1(const int in_channels, const int size);
         int get_out_size() const;
