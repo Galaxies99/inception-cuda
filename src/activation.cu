@@ -12,8 +12,8 @@ double activation_relu_cpu(double x) {
 __global__ void forward_relu(double *input, double *output, const int size) {
     const int thread_pos = blockIdx.x * blockDim.x + threadIdx.x;
     const int total_threads = blockDim.x * gridDim.x;
-    const int begin_idx = size * thread_pos / total_threads;
-    const int end_idx = size * (thread_pos + 1) / total_threads;
+    const int begin_idx = 1ll * size * thread_pos / total_threads;
+    const int end_idx = 1ll * size * (thread_pos + 1) / total_threads;
     for (int i = begin_idx; i < end_idx; ++ i)
         output[i] = activation_relu(input[i]);
 }
