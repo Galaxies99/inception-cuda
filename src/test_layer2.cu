@@ -5,8 +5,8 @@
 # include <iostream>
 using namespace std;
 
-const int batch_size = 4, in_channels = 256, size = 35, out_channels = 288;
-InceptionLayer2_2 layer(in_channels, size);
+const int batch_size = 4, in_channels = 256, size = 35;
+InceptionLayer2 layer(in_channels=in_channels, size=size, way4_ch=64);
 
 int main() {
     double *input;
@@ -24,25 +24,17 @@ int main() {
     cout << "gpu begin.\n";
     double *cuda_output = layer.gpu_forward(cuda_input, batch_size);
     cout << "gpu end.\n";
-    int out_size = batch_size * out_channels * size * size;
+    int out_channels = layer.get_out_channels(), out_size = layer.get_out_size();
+    int output_N = batch_size * out_channels * out_size * out_size;
     double *cuda_output_device;
-    cuda_output_device = (double*) malloc (sizeof(double) * out_size);
-    cudaMemcpy(cuda_output_device, cuda_output, sizeof(double) * out_size, cudaMemcpyDeviceToHost);
+    cuda_output_device = (double*) malloc (sizeof(double) * output_N);
+    cudaMemcpy(cuda_output_device, cuda_output, sizeof(double) * output_N, cudaMemcpyDeviceToHost);
 
     double max_error = 0.0;
-    for (int i = 0; i < out_size; ++i) {
-        if (fabs(cuda_output_device[i] - cpu_output[i]) > 2000.0) {
-            int id = i;
-            int c = id % size;
-            int r = (id /= size) % size;
-            int ch = (id /= size) % out_channels;
-            int b = (id /= out_channels) % batch_size;
-            cout << b << ' ' << ch << ' ' << r << ' ' << c << ' ' << "cpu: " << cpu_output[i] << ", gpu:" << cuda_output_device[i] << endl;
-        }
+    for (int i = 0; i < output_N; ++ i)
         max_error = max(max_error, fabs(cuda_output_device[i] - cpu_output[i]));
-    }
-    cout << "Max Error =" << max_error << endl;
+    cout << "Max Error = " << max_error << endl;
     if (max_error > 1e-5) cout << "Incorrect." << endl;
     else cout << "Correct." << endl;
-    return 0;
+    return 0; 
 }
