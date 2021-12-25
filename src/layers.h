@@ -9,8 +9,6 @@
 # include "opers.h"
 # include "fc.h"
 # include <stdio.h>
-# include <iostream>
-using namespace std;
 # endif
 
 
