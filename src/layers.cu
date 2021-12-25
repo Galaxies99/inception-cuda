@@ -199,6 +199,82 @@ double* InceptionLayer2 :: gpu_forward(double *input, const int batch_size) {
 
 InceptionLayer2 :: ~InceptionLayer2() {}
 
+InceptionLayer3 :: InceptionLayer3(const int in_channels, const int size) : in_channels(in_channels), size(size), way1(in_channels, 384, size, size, 3, 3, 2, 2, 0, 0), way2_1(in_channels, 64, size, size), way2_2(64, 96, size, size, 3, 3, 1, 1, 1, 1), way2_3(96, 96, size, size, 3, 3, 2, 2, 0, 0), maxpool(in_channels, size, 3, 2) {
+    out_size = (size - 1) / 2;
+    out_channels = 384 + 96 + in_channels;
+}
+
+int InceptionLayer3 :: get_out_size() const {
+    return out_size;
+}
+
+int InceptionLayer3 :: get_out_channels() const {
+    return out_channels;
+}
+
+void InceptionLayer3 :: set_params(struct InceptionLayer3params params) {
+    way1.set_params(params.way1_w, params.way1_b);
+    way2_1.set_params(params.way2_1_w, params.way2_1_b);
+    way2_2.set_params(params.way2_2_w, params.way2_2_b);
+    way2_3.set_params(params.way2_3_w, params.way2_3_b);
+}
+
+double* InceptionLayer3 :: cpu_forward(double *input, const int batch_size) {
+    //way1
+    double *way1_o = way1.cpu_forward(input, batch_size);
+    cpu_relu(way1_o, batch_size * 384 * out_size * out_size);
+    //way2
+    double *way2_1_o = way2_1.cpu_forward(input, batch_size);
+    cpu_relu(way2_1_o, batch_size * 64 * size * size);
+    double *way2_2_o = way2_2.cpu_forward(way2_1_o, batch_size);
+    cpu_relu(way2_2_o, batch_size * 96 * size * size);
+    double *way2_3_o = way2_3.cpu_forward(way2_2_o, batch_size);
+    cpu_relu(way2_3_o, batch_size * 96 * out_size * out_size);
+    free(way2_1_o);
+    free(way2_2_o);
+    //way3
+    double *way3_o = maxpool.cpu_forward(input, batch_size);
+    //final
+    double *concat_in_final[] = {way1_o, way2_3_o, way3_o};
+    int concat_ch_final[] = {384, 96, in_channels};
+    double *final = cpu_channel_concat(concat_in_final, 3, batch_size, concat_ch_final, out_size, out_size);
+    free(way1_o);
+    free(way2_3_o);
+    free(way3_o);
+    return final;
+}
+
+double* InceptionLayer3 :: gpu_forward(double *input, const int batch_size) {
+    dim3 grid_conv(8, batch_size);
+    dim3 block_conv(32);
+    dim3 grid_act(32);
+    dim3 block_act(32);
+    //way1
+    double *way1_o = way1.basic_forward(grid_conv, block_conv, input, batch_size);
+    relu(grid_act, block_act, way1_o, batch_size * 384 * out_size * out_size);
+    //way2
+    double *way2_1_o = way2_1.basic_forward(grid_conv, block_conv, input, batch_size);
+    relu(grid_act, block_act, way2_1_o, batch_size * 64 * size * size);
+    double *way2_2_o = way2_2.basic_forward(grid_conv, block_conv, way2_1_o, batch_size);
+    relu(grid_act, block_act, way2_2_o, batch_size * 96 * size * size);
+    double *way2_3_o = way2_3.basic_forward(grid_conv, block_conv, way2_2_o, batch_size);
+    relu(grid_act, block_act, way2_3_o, batch_size * 96 * out_size * out_size);
+    cudaFree(way2_1_o);
+    cudaFree(way2_2_o);
+    //way3
+    double *way3_o = maxpool.basic_forward(grid_conv, block_conv, input, batch_size);
+    //final
+    double *concat_in_final[] = {way1_o, way2_3_o, way3_o};
+    int concat_ch_final[] = {384, 96, in_channels};
+    double *final = channel_concat(grid_conv, block_conv, concat_in_final, 3, batch_size, concat_ch_final, out_size, out_size);
+    cudaFree(way1_o);
+    cudaFree(way2_3_o);
+    cudaFree(way3_o);
+    return final;
+}
+
+InceptionLayer3 :: ~InceptionLayer3() {}
+
 InceptionLayer5 :: InceptionLayer5(const int in_channels, const int size) : in_channels(in_channels), size(size), way1_1(in_channels, 192, size, size), way1_2(192, 320, size, size, 3, 3, 2, 2, 0, 0), way2_1(in_channels, 192, size, size), way2_2(192, 192, size, size, 1, 7, 1, 1, 0, 3), way2_3(192, 192, size, size, 7, 1, 1, 1, 3, 0), way2_4(192, 192, size, size, 3, 3, 2, 2, 0, 0), maxpool(in_channels, size, 3, 2) {
     out_size = (size - 3) / 2 + 1;
     out_channels = 320 + 192 + 768;
