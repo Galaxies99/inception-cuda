@@ -6,9 +6,10 @@
 
 using namespace std;
 
-const int batch_size = 4, channels = 2048, size = 8, kernel_size = 3, stride = 1, padding = 1;
+const int batch_size = 4, channels = 2048, size = 4, kernel_size = 3, stride = 1, padding = 1;
 MaxpoolingLayer maxpool(channels, size, kernel_size, stride);
 MeanpoolingLayer meanpool(channels, size, kernel_size, stride, padding);
+const int intput_size = batch_size * channels * size * size;
 const int len = size / stride + (size % stride != 0);
 const int size_padding = size + padding * 2 - kernel_size + 1;
 const int len_mean =  size_padding / stride + (size_padding % stride != 0);
@@ -23,8 +24,8 @@ int maxpool_test() {
     
     double *cpu_output = maxpool.cpu_forward(input, batch_size);
 
-    dim3 grid(batch_size);
-    dim3 block(channels);
+    dim3 grid(8, batch_size);
+    dim3 block(32);
 
     double *cuda_input;
     cudaMalloc((void **)&cuda_input, sizeof(double) * batch_size * channels * size * size);
@@ -66,8 +67,9 @@ int meanpool_test() {
 
     double *cpu_output = meanpool.cpu_forward(input, batch_size);
 
-    dim3 grid(batch_size);
-    dim3 block(channels);
+
+    dim3 grid(8, batch_size);
+    dim3 block(32);
 
     double *cuda_input;
     cudaMalloc((void **)&cuda_input, sizeof(double) * batch_size * channels * size * size);
@@ -113,10 +115,10 @@ int meanpool_test() {
 }
 
 int main(){
-    printf("Max pooling test:\n");
+    printf("Max pooling test(input size: %d):\n", intput_size);
     maxpool_test();
 
-    printf("Mean pooling test:\n");
+    printf("Mean pooling test(input size: %d):\n", intput_size);
     meanpool_test();
     return 0;
 }

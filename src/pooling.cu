@@ -6,7 +6,6 @@ void maxpooling_cpu(double* bottom_data, double* top_data, int* maxidx, const in
     int len = size / stride + (size % stride != 0);
     
     int input_size = batch_size * channel * size *size;
-    // int output_size = batch_size * channel * len * len;
     int index2;
 
     for(int batch_idx = 0; batch_idx < batch_size; batch_idx++){
@@ -39,12 +38,9 @@ void meanpooling_cpu(double* bottom_data, double* top_data, const int batch_size
     int size_padding = size + padding * 2 - kernel_size + 1;
     int len = size_padding / stride + (size_padding % stride != 0);
     
-    // int input_size = batch_size * channel * size *size;
-    // int output_size = batch_size * channel * len * len;
     int index2;
 
     double weight = 1.0 / (kernel_size*kernel_size);
-    // printf("weight is %0.4f\n", weight);
 
     for(int batch_idx = 0; batch_idx < batch_size; batch_idx++){
         for(int channel_idx = 0; channel_idx < channel; channel_idx++){
@@ -70,54 +66,79 @@ void meanpooling_cpu(double* bottom_data, double* top_data, const int batch_size
 }
 
 // batch * channel * height * width
-__global__ void maxpool_forward(double* bottom_data, double* top_data, int* maxidx, const int size, const int kernel_size, const int stride)
+__global__ void maxpool_forward(double* bottom_data, double* top_data, int* maxidx, const int size, const int kernel_size, const int channels, const int stride)
 {
+    const int batch_id = blockIdx.y;
     const int thread_pos = blockIdx.x * blockDim.x + threadIdx.x;
+    const int total_threads = blockDim.x * gridDim.x;
+
+    const int len = size / stride + (size % stride != 0);
+    const int input_N = channels * size * size;
+    const int begin_idx = channels * thread_pos / total_threads;
+    const int end_idx = channels * (thread_pos+1) / total_threads;
 
     int i , j, u, v, index, idx;
     double s;
-    int len = size / stride + (size % stride != 0);
     int index2 = thread_pos * len * len;
-    for (i = 0; i < len; ++i)
-        for (j = 0; j < len; ++j)
-        {
-            index = thread_pos * size * size + i * stride * size + j * stride;
-            s=-1e18;
-            for (u = 0; u < kernel_size && (u + stride * i) < size; ++u)
-                for (v = 0; v < kernel_size && (v + stride * j) < size; ++v)
-                    if (*(bottom_data + index + u * size + v) > s){
-                        s = *(bottom_data + index + u * size + v);
-                        idx = index + u * size + v;
-                    }
-            *(top_data + index2) = s;
-            *(maxidx + index2) = idx;
-            ++index2;
+
+    for(int c=begin_idx; c<end_idx;c++){
+        index2 = batch_id * input_N + c * size * size;
+        for (i = 0; i < len; ++i){
+            for (j = 0; j < len; ++j)
+            {
+                index = batch_id * input_N + c * size * size + i * stride * size + j * stride;
+                s=-1e18;
+                for (u = 0; u < kernel_size && (u + stride * i) < size; ++u)
+                    for (v = 0; v < kernel_size && (v + stride * j) < size; ++v)
+                        if (*(bottom_data + index + u * size + v) > s){
+                            s = *(bottom_data + index + u * size + v);
+                            idx = index + u * size + v;
+                        }
+                *(top_data + index2) = s;
+                *(maxidx + index2) = idx;
+                ++index2;
+            }
         }
+    }
 }
 
-__global__ void meanpool_forward(double* bottom_data, double* top_data, const int size, const int kernel_size, const int stride, const int padding)
+__global__ void meanpool_forward(double* bottom_data, double* top_data, const int size, const int kernel_size, const int channels, const int stride, const int padding)
 {
+    const int batch_id = blockIdx.y;
     const int thread_pos = blockIdx.x * blockDim.x + threadIdx.x;
+    const int total_threads = blockDim.x * gridDim.x;
 
-    int i , j, u, v, index;
-    double s = 0;
+    const int input_N = channels * size * size;
+
+    const int begin_idx = channels * thread_pos / total_threads;
+    const int end_idx = channels * (thread_pos+1) / total_threads;
+
     int size_padding = size + padding * 2 - kernel_size + 1;
     int len = size_padding / stride + (size_padding % stride != 0);
+
+    int i , j, u, v, index;
+    double s;
     int index2 = thread_pos * len * len;
-    for (i = 0; i < len; ++i)
-        for (j = 0; j < len; ++j)
-        {
-            s = 0;
-            index = thread_pos * size * size + i * stride * size + j * stride;
-            for (u = -padding; u < kernel_size-padding && (u + stride * i) < size; ++u)
-                for (v = -padding; v < kernel_size-padding && (v + stride * j) < size; ++v){
-                    if (i * stride + u >= 0 && j * stride + v >= 0 && i* stride + u < size && j * stride + v < size){
-                        s += *(bottom_data + index + u * size + v) / (kernel_size * kernel_size);
+
+    for(int c=begin_idx; c<end_idx;c++){
+        index2 = batch_id * input_N + c * size * size;
+        for (i = 0; i < len; ++i){
+            for (j = 0; j < len; ++j)
+            {
+                index = batch_id * input_N + c * size * size + i * stride * size + j * stride;
+                s=0;
+                for (u = -padding; u < kernel_size-padding && (u + stride * i) < size; ++u){
+                    for (v = -padding; v < kernel_size-padding && (v + stride * j) < size; ++v){
+                        if (i * stride + u >= 0 && j * stride + v >= 0 && i* stride + u < size && j * stride + v < size){
+                            s += *(bottom_data + index + u * size + v) / (kernel_size * kernel_size);
+                        }
                     }
-                }
-            *(top_data + index2) = s;
-            ++index2;
+                }                
+                *(top_data + index2) = s;
+                ++index2;
+            }
         }
+    }
 }
 
 // Construction function of convolution layer.
@@ -133,14 +154,14 @@ MaxpoolingLayer :: MaxpoolingLayer(int _channels, int _size, int _kernel_size, i
 MaxpoolingLayer :: ~MaxpoolingLayer() {}
 
 double* MaxpoolingLayer :: basic_forward(dim3 grid, dim3 block, double *input, const int batch_size) {
-    double *output;
+    double* output;
     int* maxidx;
     cudaMalloc((void **)&output, sizeof(double) * batch_size * output_size);
     cudaMemset(output, 0, sizeof(double) * batch_size * output_size);
     cudaMalloc((void **)&maxidx, sizeof(double) * batch_size * output_size);
     cudaMemset(maxidx, 0, sizeof(double) * batch_size * output_size);
 
-    maxpool_forward <<<batch_size, channels>>> (input, output, maxidx, size, kernel_size, stride);
+    maxpool_forward <<<grid, block>>> (input, output, maxidx, size, kernel_size, channels, stride);
     cudaDeviceSynchronize();
     cudaFree(maxidx);
     return output;
@@ -175,7 +196,7 @@ double* MeanpoolingLayer :: basic_forward(dim3 grid, dim3 block, double *input, 
     cudaMalloc((void **)&output, sizeof(double) * batch_size * output_size);
     cudaMemset(output, 0, sizeof(double) * batch_size * output_size);
 
-    meanpool_forward <<<batch_size, channels>>> (input, output, size, kernel_size, stride, padding);
+    meanpool_forward <<<grid, block>>> (input, output, size, kernel_size, channels, stride, padding);
     cudaDeviceSynchronize();
     return output;
 }

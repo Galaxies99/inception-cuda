@@ -8,8 +8,8 @@
 void maxpooling_cpu(double*, double*, int*, const int, const int, const int, const int, const int);
 void meanpooling_cpu(double*, double*, const int, const int, const int, const int, const int, const int);
 
-__global__ void maxpooling_forward(double*, double*, int*, const int, const int, const int);
-__global__ void meanpool_forward(double*, double*, const int, const int, const int, const int);
+__global__ void maxpooling_forward(double*, double*, int*, const int, const int,const int, const int);
+__global__ void meanpool_forward(double*, double*, const int, const int, const int, const int, const int);
 
 class MaxpoolingLayer{
     private:
