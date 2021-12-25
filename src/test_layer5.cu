@@ -6,8 +6,8 @@
 
 using namespace std;
 
-const int batch_size = 4, in_channels = 2048, size = 8, out_channels = 2048;
-InceptionLayer6 layer(in_channels, size);
+const int batch_size = 4, in_channels = 768, size = 17, out_channels = 1280;
+InceptionLayer5 layer(in_channels, size);
 
 int main() {
     double *input;
