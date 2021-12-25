@@ -1,13 +1,4 @@
 # include "pooling.h"
-<<<<<<< HEAD
-=======
-# include<math.h>
-# include<time.h>
-# include<stdio.h>
-# include"cuda_runtime.h"
-# include<sys/time.h>
-using namespace std;
->>>>>>> 76bad974ef9511852c330ca6537be4bae4f09775
 
 void maxpooling_cpu(float* bottom_data, float* top_data, int* maxidx, const int batch_size, const int channel, const int size, const int kernel_size, const int stride){
     int i , j, u, v, pos, index, idx;
