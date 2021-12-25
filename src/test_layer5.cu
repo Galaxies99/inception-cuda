@@ -6,7 +6,7 @@
 
 using namespace std;
 
-const int batch_size = 4, in_channels = 768, size = 17, out_channels = 1280;
+const int batch_size = 4, in_channels = 768, size = 17;
 InceptionLayer5 layer(in_channels, size);
 
 int main() {
@@ -25,13 +25,14 @@ int main() {
     cout << "gpu begin.\n";
     double *cuda_output = layer.gpu_forward(cuda_input, batch_size);
     cout << "gpu end.\n";
-    int out_size = batch_size * out_channels * size * size;
+    int out_channels = layer.get_out_channels(), out_size = layer.get_out_size();
+    int output_N = batch_size * out_channels * out_size * out_size;
     double *cuda_output_device;
-    cuda_output_device = (double*) malloc (sizeof(double) * out_size);
-    cudaMemcpy(cuda_output_device, cuda_output, sizeof(double) * out_size, cudaMemcpyDeviceToHost);
+    cuda_output_device = (double*) malloc (sizeof(double) * output_N);
+    cudaMemcpy(cuda_output_device, cuda_output, sizeof(double) * output_N, cudaMemcpyDeviceToHost);
 
     double max_error = 0.0;
-    for (int i = 0; i < out_size; ++ i)
+    for (int i = 0; i < output_N; ++ i)
         max_error = max(max_error, fabs(cuda_output_device[i] - cpu_output[i]));
     cout << "Max Error = " << max_error << endl;
     if (max_error > 1e-5) cout << "Incorrect." << endl;

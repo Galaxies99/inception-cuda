@@ -72,7 +72,7 @@ __global__ void conv_forward_basic_weight(double *input, double *output, double 
     const int total_threads = blockDim.x * gridDim.x;
     const int output_N = out_channels * out_size_r * out_size_c;
     const int input_N = in_channels * size_r * size_c;
-    const long long total_N = kernel_size_r * kernel_size_c * out_size_r * out_size_c * in_channels * out_channels;
+    const long long total_N = 1ll * kernel_size_r * kernel_size_c * out_size_r * out_size_c * in_channels * out_channels;
     const long long begin_idx = total_N * thread_pos / total_threads;
     const long long end_idx = total_N * (thread_pos + 1) / total_threads;
     for (long long i = begin_idx; i < end_idx; ++ i) {
