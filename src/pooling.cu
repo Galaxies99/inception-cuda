@@ -33,12 +33,13 @@ void maxpooling_cpu(float* bottom_data, float* top_data, int* maxidx, const int 
     }
 }
 
-void meanpooling_cpu(float* bottom_data, float* top_data, const int batch_size, const int channel, const int size, const int kernel_size, const int stride){
+void meanpooling_cpu(float* bottom_data, float* top_data, const int batch_size, const int channel, const int size, const int kernel_size, const int stride, const int padding){
     int i , j, u, v, pos, index;
     float s;
-    int len = size / stride + (size % stride != 0);
+    int size_padding = size + padding * 2 - kernel_size + 1;
+    int len = size_padding / stride + (size_padding % stride != 0);
     
-    int input_size = batch_size * channel * size *size;
+    // int input_size = batch_size * channel * size *size;
     // int output_size = batch_size * channel * len * len;
     int index2;
 
@@ -54,13 +55,12 @@ void meanpooling_cpu(float* bottom_data, float* top_data, const int batch_size, 
                 {
                     index = pos * size * size + i * stride * size + j * stride;
                     s = 0.0;
-                    for (u = 0; u < kernel_size && (u + stride * i) < size; ++u)
-                        for (v = 0; v < kernel_size && (v + stride * j) < size; ++v)
-                            if (index + u * size + v < input_size){
-                                // printf("%d %0.4f\t",index + u * size + v, *(bottom_data + index + u * size + v));
+                    for (u = -padding; u < kernel_size-padding && (u + stride * i) < size; ++u)
+                        for (v = -padding; v < kernel_size-padding && (v + stride * j) < size; ++v){
+                            if (i * stride + u >= 0 && j * stride + v >= 0 && i* stride + u < size && j * stride + v < size){
                                 s += *(bottom_data + index + u * size + v);
                             }
-                    // printf("\n");
+                        }
                     *(top_data + index2) = s * weight;
                     ++index2;
                 }
@@ -95,22 +95,25 @@ __global__ void maxpool_forward(float* bottom_data, float* top_data, int* maxidx
         }
 }
 
-__global__ void meanpool_forward(float* bottom_data, float* top_data, const int size, const int kernel_size, const int stride)
+__global__ void meanpool_forward(float* bottom_data, float* top_data, const int size, const int kernel_size, const int stride, const int padding)
 {
     const int thread_pos = blockIdx.x * blockDim.x + threadIdx.x;
 
     int i , j, u, v, index;
     float s = 0;
-    int len = size / stride + (size % stride != 0);
+    int size_padding = size + padding * 2 - kernel_size + 1;
+    int len = size_padding / stride + (size_padding % stride != 0);
     int index2 = thread_pos * len * len;
     for (i = 0; i < len; ++i)
         for (j = 0; j < len; ++j)
         {
             s = 0;
             index = thread_pos * size * size + i * stride * size + j * stride;
-            for (u = 0; u < kernel_size && (u + stride * i) < size; ++u)
-                for (v = 0; v < kernel_size && (v + stride * j) < size; ++v){
+            for (u = -padding; u < kernel_size-padding && (u + stride * i) < size; ++u)
+                for (v = -padding; v < kernel_size-padding && (v + stride * j) < size; ++v){
+                    if (i * stride + u >= 0 && j * stride + v >= 0 && i* stride + u < size && j * stride + v < size){
                         s += *(bottom_data + index + u * size + v) / (kernel_size * kernel_size);
+                    }
                 }
             *(top_data + index2) = s;
             ++index2;
@@ -154,12 +157,14 @@ float* MaxpoolingLayer :: cpu_forward(float *input, const int batch_size) {
 }
 
 // Construction function of convolution layer.
-MeanpoolingLayer :: MeanpoolingLayer(int _channels, int _size, int _kernel_size, int _stride){
+MeanpoolingLayer :: MeanpoolingLayer(int _channels, int _size, int _kernel_size, int _stride, int _padding){
     channels = _channels;
     size = _size;
     kernel_size = _kernel_size;
     stride = _stride;
-    int len = size / stride + (size % stride != 0);
+    padding = _padding;
+    int size_padding = size + 2*padding;
+    int len = size_padding / stride + (size_padding % stride != 0);
     output_size = channels * len * len;
 }
 // Destruction function of meanpooling layer.
@@ -170,7 +175,7 @@ float* MeanpoolingLayer :: basic_forward(dim3 grid, dim3 block, float *input, co
     cudaMalloc((void **)&output, sizeof(float) * batch_size * output_size);
     cudaMemset(output, 0, sizeof(float) * batch_size * output_size);
 
-    meanpool_forward <<<batch_size, channels>>> (input, output, size, kernel_size, stride);
+    meanpool_forward <<<batch_size, channels>>> (input, output, size, kernel_size, stride, padding);
     cudaDeviceSynchronize();
     return output;
 }
@@ -178,6 +183,6 @@ float* MeanpoolingLayer :: basic_forward(dim3 grid, dim3 block, float *input, co
 float* MeanpoolingLayer :: cpu_forward(float *input, const int batch_size) {
     float *output;
     output = (float *) malloc (sizeof(float) * batch_size * output_size);
-    meanpooling_cpu(input, output, batch_size, channels, size, kernel_size, stride);
+    meanpooling_cpu(input, output, batch_size, channels, size, kernel_size, stride, padding);
     return output;
 }
