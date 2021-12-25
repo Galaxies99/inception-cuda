@@ -14,6 +14,31 @@ using namespace std;
 # endif
 
 
+struct InceptionLayer2_2params {
+    double *way1_w, *way1_b;
+    double *way2_1_w, *way2_1_b;
+    double *way2_2_w, *way2_2_b;
+    double *way3_1_w, *way3_1_b;
+    double *way3_2_w, *way3_2_b;
+    double *way3_3_w, *way3_3_b;
+    double *way4_w, *way4_b;
+};
+
+class InceptionLayer2_2 {
+    private:
+        int in_channels, size, out_channels, out_size;
+        ConvolutionLayer way1, way2_1, way2_2, way3_1, way3_2, way3_3, way4;
+        MeanpoolingLayer avgpool;
+    public:
+        InceptionLayer2_2(const int in_channels, const int size);
+        int get_out_size() const;
+        int get_out_channels() const;
+        void set_params(struct InceptionLayer2_2params params);
+        double* cpu_forward(double *input, const int batch_size);
+        double* gpu_forward(double *input, const int batch_size);
+        ~InceptionLayer2_2();
+};
+
 struct InceptionLayer5params {
     double *way1_1_w, *way1_1_b;
     double *way1_2_w, *way1_2_b;
