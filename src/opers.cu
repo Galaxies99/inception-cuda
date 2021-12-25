@@ -4,8 +4,8 @@
 __global__ void forward_linear_transform(float *input, float *output, const int size, const float alpha, const float beta) {
     const int thread_pos = blockIdx.x * blockDim.x + threadIdx.x;
     const int total_threads = blockDim.x * gridDim.x;
-    const int begin_idx = size * thread_pos / total_threads;
-    const int end_idx = size * (thread_pos + 1) / total_threads;
+    const int begin_idx = 1ll * size * thread_pos / total_threads;
+    const int end_idx = 1ll * size * (thread_pos + 1) / total_threads;
     for (int i = begin_idx; i < end_idx; ++ i)
         output[i] = input[i] * alpha + beta;
 }
@@ -52,8 +52,8 @@ __global__ void forward_channel_concat_2(float *input1, float *input2, float *ou
     const int in_size_2 = channel2 * size_r * size_c;
     const int total_channels = channel1 + channel2;
     const int out_size = total_channels * size_r * size_c;
-    const int begin_idx = out_size * thread_pos / total_threads;
-    const int end_idx = out_size * (thread_pos + 1) / total_threads;
+    const int begin_idx = 1ll * out_size * thread_pos / total_threads;
+    const int end_idx = 1ll * out_size * (thread_pos + 1) / total_threads;
     for (int i = begin_idx; i < end_idx; ++ i) {
         int temp = i;
         const int c = temp % size_c;
@@ -75,8 +75,8 @@ __global__ void forward_channel_concat_3(float *input1, float *input2, float *in
     const int in_size_3 = channel3 * size_r * size_c;
     const int total_channels = channel1 + channel2 + channel3;
     const int out_size = total_channels * size_r * size_c;
-    const int begin_idx = out_size * thread_pos / total_threads;
-    const int end_idx = out_size * (thread_pos + 1) / total_threads;
+    const int begin_idx = 1ll * out_size * thread_pos / total_threads;
+    const int end_idx = 1ll * out_size * (thread_pos + 1) / total_threads;
     for (int i = begin_idx; i < end_idx; ++ i) {
         int temp = i;
         const int c = temp % size_c;
@@ -99,8 +99,8 @@ __global__ void forward_channel_concat_4(float *input1, float *input2, float *in
     const int in_size_4 = channel4 * size_r * size_c;
     const int total_channels = channel1 + channel2 + channel3 + channel4;
     const int out_size = total_channels * size_r * size_c;
-    const int begin_idx = out_size * thread_pos / total_threads;
-    const int end_idx = out_size * (thread_pos + 1) / total_threads;
+    const int begin_idx = 1ll * out_size * thread_pos / total_threads;
+    const int end_idx = 1ll * out_size * (thread_pos + 1) / total_threads;
     for (int i = begin_idx; i < end_idx; ++ i) {
         int temp = i;
         const int c = temp % size_c;

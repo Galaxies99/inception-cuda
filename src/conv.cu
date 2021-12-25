@@ -72,11 +72,11 @@ __global__ void conv_forward_basic_weight(float *input, float *output, float *we
     const int total_threads = blockDim.x * gridDim.x;
     const int output_N = out_channels * out_size_r * out_size_c;
     const int input_N = in_channels * size_r * size_c;
-    const int total_N = kernel_size_r * kernel_size_c * out_size_r * out_size_c * in_channels * out_channels;
-    const int begin_idx = total_N * thread_pos / total_threads;
-    const int end_idx = total_N * (thread_pos + 1) / total_threads;
-    for (int i = begin_idx; i < end_idx; ++ i) {
-        int temp = i;
+    const long long total_N = kernel_size_r * kernel_size_c * out_size_r * out_size_c * in_channels * out_channels;
+    const long long begin_idx = total_N * thread_pos / total_threads;
+    const long long end_idx = total_N * (thread_pos + 1) / total_threads;
+    for (long long i = begin_idx; i < end_idx; ++ i) {
+        long long temp = i;
         const int i_kernel_c = temp % kernel_size_c;
         const int i_kernel_r = (temp /= kernel_size_c) % kernel_size_r;
         const int i_in_channel = (temp /= kernel_size_r) % in_channels;

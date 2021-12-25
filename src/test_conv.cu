@@ -6,7 +6,7 @@
 
 using namespace std;
 
-int batch_size = 4, in_channels = 5, out_channels = 6, in_size_r = 30, in_size_c = 30, kernel_r = 3, kernel_c = 3, stride_r = 1, stride_c = 1, padding_r = 1, padding_c = 1;
+int batch_size = 4, in_channels = 2048, out_channels = 320, in_size_r = 8, in_size_c = 8, kernel_r = 1, kernel_c = 1, stride_r = 1, stride_c = 1, padding_r = 0, padding_c = 0;
 ConvolutionLayer conv(in_channels, out_channels, in_size_r, in_size_c, kernel_r, kernel_c, stride_r, stride_c, padding_r, padding_c);
 
 int main() {
@@ -20,8 +20,8 @@ int main() {
     
     float *cpu_output = conv.cpu_forward(input, batch_size);
 
-    dim3 grid(2, batch_size);
-    dim3 block(4);
+    dim3 grid(8, batch_size);
+    dim3 block(32);
 
     float *cuda_input;
     cudaMalloc((void **)&cuda_input, sizeof(float) * batch_size * in_channels * in_size_r * in_size_c);

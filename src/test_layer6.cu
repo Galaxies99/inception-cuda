@@ -15,19 +15,23 @@ int main() {
     input = (float*) malloc (sizeof(float) * batch_size * in_channels * size * size);
     for (int i = 0; i < batch_size * in_channels * size * size; ++ i)
         input[i] = (float) (rand() % 32768) / 32768.0;
-    
+    cout << "cpu begin.\n";
     float *cpu_output = layer.cpu_forward(input, batch_size);
+    cout << "cpu end.\n";
 
     float *cuda_input;
     cudaMalloc((void **)&cuda_input, sizeof(float) * batch_size * in_channels * size * size);
     cudaMemcpy(cuda_input, input, sizeof(float) * batch_size * in_channels * size * size, cudaMemcpyHostToDevice);
-    float *cuda_output = conv.basic_forward(cuda_input, batch_size);
+    cout << "gpu begin.\n";
+    float *cuda_output = layer.gpu_forward(cuda_input, batch_size);
+    cout << "gpu end.\n";
     float *cuda_output_device;
     cuda_output_device = (float*) malloc (sizeof(float) * batch_size * out_channels * size * size);
     cudaMemcpy(cuda_output_device, cuda_output, sizeof(float) * batch_size * out_channels * size * size, cudaMemcpyDeviceToHost);
 
+
     float max_error = 0.0;
-    for (int i = 0; i < * batch_size * out_channels * size * size; ++ i) 
+    for (int i = 0; i < batch_size * out_channels * size * size; ++ i) 
         max_error = max(max_error, fabs(cuda_output_device[i] - cpu_output[i]));
     cout << "Max Error = " << max_error << endl;
     if (max_error > 1e-5) cout << "Incorrect." << endl;

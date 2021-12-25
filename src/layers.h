@@ -9,6 +9,8 @@
 # include "opers.h"
 # include "fc.h"
 # include <stdio.h>
+# include <iostream>
+using namespace std;
 # endif
 
 
@@ -27,11 +29,12 @@ struct InceptionLayer6params {
 class InceptionLayer6 {
     private:
         int in_channels, size;
-        ConvolutionLayer way1, way23_1, way2_2, way3_2, way_45_1, way45_2, way4_3, way5_3, way6;
+        ConvolutionLayer way1, way23_1, way2_2, way3_2, way45_1, way45_2, way4_3, way5_3, way6;
         MeanpoolingLayer avgpool;
     public:
         InceptionLayer6(const int in_channels, const int size);
         void set_params(struct InceptionLayer6params params);
-        void cpu_forward(float *input, const int batch_size);
+        float* cpu_forward(float *input, const int batch_size);
+        float* gpu_forward(float *input, const int batch_size);
         ~InceptionLayer6();
-}
+};
