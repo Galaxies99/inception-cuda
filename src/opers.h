@@ -6,6 +6,11 @@
 # include <assert.h>
 # endif
 
+__global__ void forward_gather(double *input, double *output, const int size, const int channels, const int channel_idx);
+
+double* cpu_gather(double *input, const int batch_size, const int size, const int channels, const int channel_idx);
+double* gather(dim3 grid, dim3 block, double *input, const int batch_size, const int size, const int channels, const int channel_idx);
+
 
 __global__ void forward_linear_transform(double *input, double *output, const int size, const double alpha, const double beta);
 
