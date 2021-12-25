@@ -1,7 +1,8 @@
-# ifndef _LAYER_H_
-# define _LAYER_H_
+# ifndef _POOLING_H
+# define _POOLING_H
 # include "cuda_runtime.h"
 # include "utils.h"
+# include <stdio.h>
 # endif
 
 void maxpooling_cpu(float*, float*, int*, const int, const int, const int, const int, const int);
