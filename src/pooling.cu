@@ -1,4 +1,13 @@
 # include "pooling.h"
+<<<<<<< HEAD
+=======
+# include<math.h>
+# include<time.h>
+# include<stdio.h>
+# include"cuda_runtime.h"
+# include<sys/time.h>
+using namespace std;
+>>>>>>> 76bad974ef9511852c330ca6537be4bae4f09775
 
 void maxpooling_cpu(float* bottom_data, float* top_data, int* maxidx, const int batch_size, const int channel, const int size, const int kernel_size, const int stride){
     int i , j, u, v, pos, index, idx;
@@ -17,7 +26,7 @@ void maxpooling_cpu(float* bottom_data, float* top_data, int* maxidx, const int 
                 for (j = 0; j < len; ++j)
                 {
                     index = pos * size * size + i * stride * size + j * stride;
-                    s=-10000.0;
+                    s=-1e18;
                     for (u = 0; u < kernel_size && (u + stride * i) < size; ++u)
                         for (v = 0; v < kernel_size && (v + stride * j) < size; ++v)
                             if (index + u * size + v < input_size && *(bottom_data + index + u * size + v) > s){
@@ -82,7 +91,7 @@ __global__ void maxpool_forward(float* bottom_data, float* top_data, int* maxidx
         for (j = 0; j < len; ++j)
         {
             index = thread_pos * size * size + i * stride * size + j * stride;
-            s=-10000.0;
+            s=-1e18;
             for (u = 0; u < kernel_size && (u + stride * i) < size; ++u)
                 for (v = 0; v < kernel_size && (v + stride * j) < size; ++v)
                     if (*(bottom_data + index + u * size + v) > s){

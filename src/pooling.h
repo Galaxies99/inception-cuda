@@ -1,5 +1,10 @@
+<<<<<<< HEAD
 # ifndef _POOLING_H
 # define _POOLING_H
+=======
+# ifndef _POOL_H_
+# define _POOL_H_
+>>>>>>> 76bad974ef9511852c330ca6537be4bae4f09775
 # include "cuda_runtime.h"
 # include "utils.h"
 # include <stdio.h>
