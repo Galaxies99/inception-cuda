@@ -6,7 +6,7 @@
 
 using namespace std;
 
-const int batch_size = 2048, channels = 2, size = 4, kernel_size = 3, stride = 1, padding = 1;
+const int batch_size = 4, channels = 2048, size = 8, kernel_size = 3, stride = 1, padding = 1;
 MaxpoolingLayer maxpool(channels, size, kernel_size, stride);
 MeanpoolingLayer meanpool(channels, size, kernel_size, stride, padding);
 const int len = size / stride + (size % stride != 0);

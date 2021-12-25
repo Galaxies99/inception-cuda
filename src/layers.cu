@@ -51,6 +51,8 @@ double* InceptionLayer6 :: cpu_forward(double *input, const int batch_size) {
     free(way5_o3);
     // way6
     double *way6_o1 = avgpool.cpu_forward(input, batch_size);
+    for (int i = 0; i < 100; ++ i) cout << way6_o1[i] << ' ';
+    cout << endl;
     double *way6_o = way6.cpu_forward(way6_o1, batch_size);
     cpu_relu(way6_o, batch_size * 192 * size * size);
     free(way6_o1);
@@ -104,6 +106,10 @@ double* InceptionLayer6 :: gpu_forward(double *input, const int batch_size) {
     cudaFree(way5_o3);
     // way6
     double *way6_o1 = avgpool.basic_forward(grid_conv, block_conv, input, batch_size);
+    double *way6_o1_device = (double *) malloc (sizeof(double) * batch_size * in_channels * size * size);
+    cudaMemcpy(way6_o1_device, way6_o1, sizeof(double) * batch_size * in_channels * size * size, cudaMemcpyDeviceToHost);
+    for (int i = 0; i < 100; ++ i) cout << way6_o1_device[i] << ' ';
+    cout << endl;
     double *way6_o = way6.basic_forward(grid_conv, block_conv, way6_o1, batch_size);
     relu(grid_act, block_act, way6_o, batch_size * 192 * size * size);
     cudaFree(way6_o1);
