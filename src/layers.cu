@@ -1,6 +1,6 @@
 # include "layers.h"
 
-InceptionLayer1 :: InceptionLayer1(const int in_channels, const int size) : in_channels(in_channels), size(size), c_1(in_channels, 32, 299, 299, 3, 3, 2, 2, 0, 0), c_2(32, 32, 149, 149, 3, 3, 1, 1, 0, 0), c_3(32, 64, 147, 147, 3, 3, 1, 1, 1, 1), c_4(64, 80, 73, 73, 1, 1, 1, 1, 0, 0), c_5(80, 192, 73, 73, 3, 3, 1, 1, 0, 0), m1(64, 147, 3, 2), m2(192, 71, 3, 2) {
+InceptionLayer1 :: InceptionLayer1(const int in_channels, const int size) : in_channels(in_channels), size(size), c_1(in_channels, 32, 299, 299, 3, 3, 2, 2, 0, 0), c_2(32, 32, 149, 149, 3, 3, 1, 1, 0, 0), c_3(32, 64, 147, 147, 3, 3, 1, 1, 1, 1), c_4(64, 80, 73, 73), c_5(80, 192, 73, 73, 3, 3, 1, 1, 0, 0), m1(64, 147, 3, 2), m2(192, 71, 3, 2) {
     way1_w = 0.46;
     way1_b = -0.02;
     way2_w = 0.45;
@@ -49,12 +49,12 @@ double* InceptionLayer1 :: cpu_forward(double *input, const int batch_size) {
     free(slice1);
     free(slice2);
 
-    // return input_new;
 
     // center processing
     double* c_1_o = c_1.cpu_forward(input_new, batch_size);
     cpu_relu(c_1_o, batch_size * 32 * 149 * 149);
     free(input_new);
+    
 
     double* c_2_o = c_2.cpu_forward(c_1_o, batch_size);
     cpu_relu(c_2_o, batch_size * 32 * 147 * 147);
@@ -104,12 +104,13 @@ double* InceptionLayer1 :: gpu_forward(double *input, const int batch_size) {
     cudaFree(slice1);
     cudaFree(slice2);
     
-    // return input_new;
 
     // center processing
+
     double* c_1_o = c_1.basic_forward(grid_conv, block_conv, input_new, batch_size);
     relu(grid_act, block_act, c_1_o, batch_size * 32 * 149 * 149);
     cudaFree(input_new);
+    
 
     double* c_2_o = c_2.basic_forward(grid_conv, block_conv, c_1_o, batch_size);
     relu(grid_act, block_act, c_2_o, batch_size * 32 * 147 * 147);
@@ -118,6 +119,7 @@ double* InceptionLayer1 :: gpu_forward(double *input, const int batch_size) {
     double* c_3_o = c_3.basic_forward(grid_conv, block_conv, c_2_o, batch_size);
     relu(grid_act, block_act, c_3_o, batch_size * 64 * 147 * 147);
     cudaFree(c_2_o);
+
     double *maxpool_o = m1.basic_forward(grid_conv, block_conv, c_3_o, batch_size);
     cudaFree(c_3_o);
 
@@ -311,6 +313,153 @@ double* InceptionLayer3 :: gpu_forward(double *input, const int batch_size) {
 }
 
 InceptionLayer3 :: ~InceptionLayer3() {}
+
+// Layer4
+InceptionLayer4 :: InceptionLayer4(const int in_channels, const int size) : in_channels(in_channels), size(size), way1(in_channels, 192, size, size), way2_1(in_channels, 128, size, size), way2_2(128, 128, size, size, 1, 7, 1, 1, 0, 3), way2_3(128, 192, size, size, 7, 1, 1, 1, 3, 0), way3_1(in_channels, 128, size, size), way3_2(128, 128, size, size, 7, 1, 1, 1, 3, 0), way3_3(128, 128, size, size, 1, 7, 1, 1, 0, 3), way3_4(128, 128, size, size, 7, 1, 1, 1, 3, 0), way3_5(128, 192, size, size, 1, 7, 1, 1, 0, 3), way4(in_channels, 192, size, size), meanpool(in_channels, size, 3, 1, 1) {
+    out_size = size;
+    out_channels = in_channels;
+}
+
+int InceptionLayer4 :: get_out_size() const {
+    return out_size;
+}
+
+int InceptionLayer4 :: get_out_channels() const {
+    return out_channels;
+}
+
+void InceptionLayer4 :: set_params(struct InceptionLayer4params params) {
+    way1.set_params(params.way1_w, params.way1_b);
+    way2_1.set_params(params.way2_1_w, params.way2_1_b);
+    way2_2.set_params(params.way2_2_w, params.way2_2_b);
+    way2_3.set_params(params.way2_3_w, params.way2_3_b);
+    way3_1.set_params(params.way3_1_w, params.way3_1_b);
+    way3_2.set_params(params.way3_2_w, params.way3_2_b);
+    way3_3.set_params(params.way3_3_w, params.way3_3_b);
+    way3_4.set_params(params.way3_4_w, params.way3_4_b);
+    way3_5.set_params(params.way3_5_w, params.way3_5_b);
+    way4.set_params(params.way4_w, params.way4_b);
+}
+
+double* InceptionLayer4 :: cpu_forward(double *input, const int batch_size) {
+    //way1
+    double *way1_o = way1.cpu_forward(input, batch_size);
+    cpu_relu(way1_o, batch_size * 192 * out_size * out_size);
+
+    //way2
+    double *way2_1_o = way2_1.cpu_forward(input, batch_size);
+    cpu_relu(way2_1_o, batch_size * 128 * size * size);
+
+    double *way2_2_o = way2_2.cpu_forward(way2_1_o, batch_size);
+    cpu_relu(way2_2_o, batch_size * 128 * size * size);
+    free(way2_1_o);
+
+    double *way2_3_o = way2_3.cpu_forward(way2_2_o, batch_size);
+    cpu_relu(way2_3_o, batch_size * 192 * out_size * out_size);
+    free(way2_2_o);
+
+    //way3
+    double *way3_1_o = way3_1.cpu_forward(input, batch_size);
+    cpu_relu(way3_1_o, batch_size * 128 * size * size);
+
+    double *way3_2_o = way3_2.cpu_forward(way3_1_o, batch_size);
+    cpu_relu(way3_2_o, batch_size * 128 * size * size);
+    free(way3_1_o);
+
+    double *way3_3_o = way3_3.cpu_forward(way3_2_o, batch_size);
+    cpu_relu(way3_3_o, batch_size * 128 * size * size);
+    free(way3_2_o);
+
+    double *way3_4_o = way3_4.cpu_forward(way3_3_o, batch_size);
+    cpu_relu(way3_4_o, batch_size * 128 * size * size);
+    free(way3_3_o);
+
+    double *way3_5_o = way3_5.cpu_forward(way3_4_o, batch_size);
+    cpu_relu(way3_5_o, batch_size * 192 * out_size * out_size);
+    free(way3_4_o);
+    
+
+    //way4
+    double *avg_o = meanpool.cpu_forward(input, batch_size);
+
+    double *way4_o = way4.cpu_forward(avg_o, batch_size);
+    cpu_relu(way4_o, batch_size * 192 * out_size * out_size);
+    free(avg_o);
+
+    //final
+    double *concat_in_final[] = {way1_o, way2_3_o, way3_5_o, way4_o};
+    int concat_ch_final[] = {192, 192, 192, 192};
+    double *final = cpu_channel_concat(concat_in_final, 4, batch_size, concat_ch_final, out_size, out_size);
+    free(way1_o);
+    free(way2_3_o);
+    free(way3_5_o);
+    free(way4_o);
+    return final;
+}
+
+double* InceptionLayer4 :: gpu_forward(double *input, const int batch_size) {
+    dim3 grid_conv(8, batch_size);
+    dim3 block_conv(32);
+    dim3 grid_act(32);
+    dim3 block_act(32);
+
+    //way1
+    double *way1_o = way1.basic_forward(grid_conv, block_conv, input, batch_size);
+    relu(grid_act, block_act, way1_o, batch_size * 192 * out_size * out_size);
+
+    //way2
+    double *way2_1_o = way2_1.basic_forward(grid_conv, block_conv, input, batch_size);
+    relu(grid_act, block_act, way2_1_o, batch_size * 128 * size * size);
+
+    double *way2_2_o = way2_2.basic_forward(grid_conv, block_conv, way2_1_o, batch_size);
+    relu(grid_act, block_act, way2_2_o, batch_size * 128 * size * size);
+    cudaFree(way2_1_o);
+
+    double *way2_3_o = way2_3.basic_forward(grid_conv, block_conv, way2_2_o, batch_size);
+    relu(grid_act, block_act, way2_3_o, batch_size * 192 * out_size * out_size);
+    cudaFree(way2_2_o);
+    
+    //way3
+    double *way3_1_o = way3_1.basic_forward(grid_conv, block_conv, input, batch_size);
+    relu(grid_act, block_act, way3_1_o, batch_size * 128 * size * size);
+
+    double *way3_2_o = way3_2.basic_forward(grid_conv, block_conv, way3_1_o, batch_size);
+    relu(grid_act, block_act, way3_2_o, batch_size * 128 * size * size);
+    cudaFree(way3_1_o);
+
+    double *way3_3_o = way3_3.basic_forward(grid_conv, block_conv, way3_2_o, batch_size);
+    relu(grid_act, block_act, way3_3_o, batch_size * 128 * size * size);
+    cudaFree(way3_2_o);
+
+    double *way3_4_o = way3_4.basic_forward(grid_conv, block_conv, way3_3_o, batch_size);
+    relu(grid_act, block_act, way3_4_o, batch_size * 128 * size * size);
+    cudaFree(way3_3_o);
+
+    double *way3_5_o = way3_5.basic_forward(grid_conv, block_conv, way3_4_o, batch_size);
+    relu(grid_act, block_act, way3_5_o, batch_size * 192 * out_size * out_size);
+    cudaFree(way3_4_o);
+
+    //way4
+    double *avg_o = meanpool.basic_forward(grid_conv, block_conv, input, batch_size);
+    double *way4_o = way4.basic_forward(grid_conv, block_conv, avg_o, batch_size);
+    relu(grid_act, block_act, way4_o, batch_size * 192 * out_size * out_size);
+    cudaFree(avg_o);
+
+    //final
+    double *concat_in_final[] = {way1_o, way2_3_o, way3_5_o, way4_o};
+    int concat_ch_final[] = {192, 192, 192, 192};
+    double *final = channel_concat(grid_conv, block_conv, concat_in_final, 4, batch_size, concat_ch_final, out_size, out_size);
+
+
+    cudaFree(way1_o);
+    cudaFree(way2_3_o);
+    cudaFree(way3_5_o);
+    cudaFree(way4_o);
+    return final;
+}
+
+InceptionLayer4 :: ~InceptionLayer4() {}
+
 
 InceptionLayer5 :: InceptionLayer5(const int in_channels, const int size) : in_channels(in_channels), size(size), way1_1(in_channels, 192, size, size), way1_2(192, 320, size, size, 3, 3, 2, 2, 0, 0), way2_1(in_channels, 192, size, size), way2_2(192, 192, size, size, 1, 7, 1, 1, 0, 3), way2_3(192, 192, size, size, 7, 1, 1, 1, 3, 0), way2_4(192, 192, size, size, 3, 3, 2, 2, 0, 0), maxpool(in_channels, size, 3, 2) {
     out_size = (size - 3) / 2 + 1;

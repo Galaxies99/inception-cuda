@@ -89,6 +89,34 @@ class InceptionLayer3 {
         ~InceptionLayer3();
 };
 
+struct InceptionLayer4params {
+    double *way1_w, *way1_b;
+    double *way2_1_w, *way2_1_b;
+    double *way2_2_w, *way2_2_b;
+    double *way2_3_w, *way2_3_b;
+    double *way3_1_w, *way3_1_b;
+    double *way3_2_w, *way3_2_b;
+    double *way3_3_w, *way3_3_b;
+    double *way3_4_w, *way3_4_b;
+    double *way3_5_w, *way3_5_b;
+    double *way4_w, *way4_b;
+};
+
+class InceptionLayer4 {
+    private:
+        int in_channels, size, out_channels, out_size;
+        ConvolutionLayer way1, way2_1, way2_2, way2_3, way3_1, way3_2, way3_3, way3_4, way3_5, way4;
+        MeanpoolingLayer meanpool;
+    public:
+        InceptionLayer4(const int in_channels, const int size);
+        int get_out_size() const;
+        int get_out_channels() const;
+        void set_params(struct InceptionLayer4params params);
+        double* cpu_forward(double *input, const int batch_size);
+        double* gpu_forward(double *input, const int batch_size);
+        ~InceptionLayer4();
+};
+
 struct InceptionLayer5params {
     double *way1_1_w, *way1_1_b;
     double *way1_2_w, *way1_2_b;

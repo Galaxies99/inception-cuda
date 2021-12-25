@@ -3,11 +3,10 @@
 # include <stdlib.h>
 # include <stdio.h>
 # include <iostream>
-
 using namespace std;
 
-const int batch_size = 4, in_channels = 3, size = 299;// out_channels = 192, output_size = 35;
-InceptionLayer1 layer(in_channels, size);
+const int batch_size = 4, in_channels = 768, size = 17;
+InceptionLayer4 layer(in_channels, size);
 
 int main() {
     double *input;
