@@ -1,5 +1,5 @@
-# ifndef _LAYER_H_
-# define _LAYER_H_
+# ifndef _POOL_H_
+# define _POOL_H_
 # include "cuda_runtime.h"
 # include "utils.h"
 # endif
