@@ -9,8 +9,8 @@ FullyConnectedLayer :: FullyConnectedLayer(int _in_features, int _out_features) 
     bias_N = out_features;
     output_N = _out_features;
 
-    cudaMalloc(&weight, sizeof(float) * weight_N);
-    cudaMalloc(&bias, sizeof(float) * bias_N);
+    cudaMalloc(&weight, sizeof(double) * weight_N);
+    cudaMalloc(&bias, sizeof(double) * bias_N);
     set_params();
 }
 
@@ -23,7 +23,7 @@ FullyConnectedLayer :: ~FullyConnectedLayer() {
 }
 
 // FC forward (cpu)
-void fc_forward_cpu(float *input, float *output, float *weight, float *bias, const int batch_size, const int in_features, const int out_features) {
+void fc_forward_cpu(double *input, double *output, double *weight, double *bias, const int batch_size, const int in_features, const int out_features) {
     const int input_N = in_features;
     const int output_N = out_features;
     for (int b = 0; b < batch_size; ++b) {
@@ -36,15 +36,15 @@ void fc_forward_cpu(float *input, float *output, float *weight, float *bias, con
     }
 }
 
-float* FullyConnectedLayer :: cpu_forward(float *input, const int batch_size) {
-    float *output;
-    output = (float *) malloc (sizeof(float) * batch_size * output_N);
+double* FullyConnectedLayer :: cpu_forward(double *input, const int batch_size) {
+    double *output;
+    output = (double *) malloc (sizeof(double) * batch_size * output_N);
     fc_forward_cpu(input, output, h_weight, h_bias, batch_size, in_features, out_features);
     return output;
 }
 
 // FC forward (weight) (basic, no optimization)
-__global__ void fc_basic_weight_forward(float *input, float *output, float *weight, const int batch_size, const int in_features, const int out_features) {
+__global__ void fc_basic_weight_forward(double *input, double *output, double *weight, const int batch_size, const int in_features, const int out_features) {
     const int batch_id = blockIdx.y;
     const int thread_pos = blockIdx.x * blockDim.x + threadIdx.x;
     const int total_threads = blockDim.x * gridDim.x;
@@ -61,7 +61,7 @@ __global__ void fc_basic_weight_forward(float *input, float *output, float *weig
 }
 
 // FC forward (bias) (basic, no optimization)
-__global__ void fc_basic_bias_forward(float *input, float *output, float *bias, const int batch_size, const int in_features, const int out_features) {
+__global__ void fc_basic_bias_forward(double *input, double *output, double *bias, const int batch_size, const int in_features, const int out_features) {
     const int batch_id = blockIdx.y;
     const int thread_pos = blockIdx.x * blockDim.x + threadIdx.x;
     const int total_threads = blockDim.x * gridDim.x;
@@ -74,19 +74,19 @@ __global__ void fc_basic_bias_forward(float *input, float *output, float *bias, 
     }
 }
 
-float* FullyConnectedLayer :: basic_forward(dim3 grid, dim3 block, float *input, const int batch_size) {
-    float *output;
-    cudaMalloc((void **)&output, sizeof(float) * batch_size * output_N);
-    cudaMemset(output, 0, sizeof(float) * batch_size * output_N);
+double* FullyConnectedLayer :: basic_forward(dim3 grid, dim3 block, double *input, const int batch_size) {
+    double *output;
+    cudaMalloc((void **)&output, sizeof(double) * batch_size * output_N);
+    cudaMemset(output, 0, sizeof(double) * batch_size * output_N);
     fc_basic_weight_forward <<<grid, block>>> (input, output, weight, batch_size, in_features, out_features);
     fc_basic_bias_forward <<<grid, block>>> (output, output, bias, batch_size, in_features, out_features);
     cudaDeviceSynchronize();
     return output;
 }
 
-void FullyConnectedLayer :: set_params(float *_h_weight, float *_h_bias) {
+void FullyConnectedLayer :: set_params(double *_h_weight, double *_h_bias) {
     if (_h_weight == NULL) {
-        h_weight = (float*) malloc (sizeof(float) * weight_N);
+        h_weight = (double*) malloc (sizeof(double) * weight_N);
         for (int i = 0; i < weight_N; ++i)
             h_weight[i] = init_rand();
     } else {
@@ -94,13 +94,13 @@ void FullyConnectedLayer :: set_params(float *_h_weight, float *_h_bias) {
         h_weight = _h_weight;
     }
     if (_h_bias == NULL) {
-        h_bias = (float*) malloc (sizeof(float) * bias_N);
+        h_bias = (double*) malloc (sizeof(double) * bias_N);
         for (int i = 0; i < bias_N; ++i)
             h_bias[i] = init_rand();
     } else {
         if (h_bias != NULL) free(h_bias);
         h_bias = _h_bias;
     }
-    cudaMemcpy(weight, h_weight, sizeof(float) * weight_N, cudaMemcpyHostToDevice);
-    cudaMemcpy(bias, h_bias, sizeof(float) * bias_N, cudaMemcpyHostToDevice);
+    cudaMemcpy(weight, h_weight, sizeof(double) * weight_N, cudaMemcpyHostToDevice);
+    cudaMemcpy(bias, h_bias, sizeof(double) * bias_N, cudaMemcpyHostToDevice);
 }

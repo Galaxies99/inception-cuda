@@ -15,26 +15,26 @@ const int len_mean =  size_padding / stride + (size_padding % stride != 0);
 const int output_size_max = channels * len * len;
 const int output_size_mean = channels * len_mean * len_mean;
 int maxpool_test() {
-    float *input;
+    double *input;
 
-    input = (float*) malloc (sizeof(float) * batch_size * channels * size * size);
+    input = (double*) malloc (sizeof(double) * batch_size * channels * size * size);
     for (int i = 0; i < batch_size * channels * size * size; ++ i)
-        input[i] = (float) (rand() % 32768) / 32768.0;
+        input[i] = (double) (rand() % 32768) / 32768.0;
     
-    float *cpu_output = maxpool.cpu_forward(input, batch_size);
+    double *cpu_output = maxpool.cpu_forward(input, batch_size);
 
     dim3 grid(batch_size);
     dim3 block(channels);
 
-    float *cuda_input;
-    cudaMalloc((void **)&cuda_input, sizeof(float) * batch_size * channels * size * size);
-    cudaMemcpy(cuda_input, input, sizeof(float) * batch_size * channels * size * size, cudaMemcpyHostToDevice);
-    float *cuda_output = maxpool.basic_forward(grid, block, cuda_input, batch_size);
-    float *cuda_output_device;
-    cuda_output_device = (float*) malloc (sizeof(float) * batch_size * output_size_max);
-    cudaMemcpy(cuda_output_device, cuda_output, sizeof(float) * batch_size * output_size_max, cudaMemcpyDeviceToHost);
+    double *cuda_input;
+    cudaMalloc((void **)&cuda_input, sizeof(double) * batch_size * channels * size * size);
+    cudaMemcpy(cuda_input, input, sizeof(double) * batch_size * channels * size * size, cudaMemcpyHostToDevice);
+    double *cuda_output = maxpool.basic_forward(grid, block, cuda_input, batch_size);
+    double *cuda_output_device;
+    cuda_output_device = (double*) malloc (sizeof(double) * batch_size * output_size_max);
+    cudaMemcpy(cuda_output_device, cuda_output, sizeof(double) * batch_size * output_size_max, cudaMemcpyDeviceToHost);
 
-    float max_error = 0.0;
+    double max_error = 0.0;
     for (int i = 0; i < batch_size * output_size_max; ++ i) 
         max_error = max(max_error, fabs(cuda_output_device[i] - cpu_output[i]));
     cout << "Max Error = " << max_error << endl;
@@ -44,11 +44,11 @@ int maxpool_test() {
 }
 
 int meanpool_test() {
-    float *input;
+    double *input;
 
-    input = (float*) malloc (sizeof(float) * batch_size * channels * size * size);
+    input = (double*) malloc (sizeof(double) * batch_size * channels * size * size);
     for (int i = 0; i < batch_size * channels * size * size; ++ i)
-        input[i] = (float) (rand() % 32768) / 32768.0;
+        input[i] = (double) (rand() % 32768) / 32768.0;
     
     // printf("Input:\n");
     // for(int i = 0; i<batch_size;i++){
@@ -64,18 +64,18 @@ int meanpool_test() {
     //     }
     // }
 
-    float *cpu_output = meanpool.cpu_forward(input, batch_size);
+    double *cpu_output = meanpool.cpu_forward(input, batch_size);
 
     dim3 grid(batch_size);
     dim3 block(channels);
 
-    float *cuda_input;
-    cudaMalloc((void **)&cuda_input, sizeof(float) * batch_size * channels * size * size);
-    cudaMemcpy(cuda_input, input, sizeof(float) * batch_size * channels * size * size, cudaMemcpyHostToDevice);
-    float *cuda_output = meanpool.basic_forward(grid, block, cuda_input, batch_size);
-    float *cuda_output_device;
-    cuda_output_device = (float*) malloc (sizeof(float) * batch_size * output_size_mean);
-    cudaMemcpy(cuda_output_device, cuda_output, sizeof(float) * batch_size * output_size_mean, cudaMemcpyDeviceToHost);
+    double *cuda_input;
+    cudaMalloc((void **)&cuda_input, sizeof(double) * batch_size * channels * size * size);
+    cudaMemcpy(cuda_input, input, sizeof(double) * batch_size * channels * size * size, cudaMemcpyHostToDevice);
+    double *cuda_output = meanpool.basic_forward(grid, block, cuda_input, batch_size);
+    double *cuda_output_device;
+    cuda_output_device = (double*) malloc (sizeof(double) * batch_size * output_size_mean);
+    cudaMemcpy(cuda_output_device, cuda_output, sizeof(double) * batch_size * output_size_mean, cudaMemcpyDeviceToHost);
 
     // printf("Output:\n");
     // for(int i = 0; i<batch_size;i++){
@@ -103,7 +103,7 @@ int meanpool_test() {
     //     }
     // }
 
-    float max_error = 0.0;
+    double max_error = 0.0;
     for (int i = 0; i < batch_size * output_size_mean; ++ i) 
         max_error = max(max_error, fabs(cuda_output_device[i] - cpu_output[i]));
     cout << "Max Error = " << max_error << endl;

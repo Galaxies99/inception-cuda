@@ -10,28 +10,28 @@ int batch_size = 4, in_channels = 2048, out_channels = 320, in_size_r = 8, in_si
 ConvolutionLayer conv(in_channels, out_channels, in_size_r, in_size_c, kernel_r, kernel_c, stride_r, stride_c, padding_r, padding_c);
 
 int main() {
-    float *input;
+    double *input;
     int out_size_r, out_size_c;
     conv.get_output_size(out_size_r, out_size_c);
 
-    input = (float*) malloc (sizeof(float) * batch_size * in_channels * in_size_r * in_size_c);
+    input = (double*) malloc (sizeof(double) * batch_size * in_channels * in_size_r * in_size_c);
     for (int i = 0; i < batch_size * in_channels * in_size_r * in_size_c; ++ i)
-        input[i] = (float) (rand() % 32768) / 32768.0;
+        input[i] = (double) (rand() % 32768) / 32768.0;
     
-    float *cpu_output = conv.cpu_forward(input, batch_size);
+    double *cpu_output = conv.cpu_forward(input, batch_size);
 
     dim3 grid(8, batch_size);
     dim3 block(32);
 
-    float *cuda_input;
-    cudaMalloc((void **)&cuda_input, sizeof(float) * batch_size * in_channels * in_size_r * in_size_c);
-    cudaMemcpy(cuda_input, input, sizeof(float) * batch_size * in_channels * in_size_r * in_size_c, cudaMemcpyHostToDevice);
-    float *cuda_output = conv.basic_forward(grid, block, cuda_input, batch_size);
-    float *cuda_output_device;
-    cuda_output_device = (float*) malloc (sizeof(float) * batch_size * out_channels * out_size_r * out_size_c);
-    cudaMemcpy(cuda_output_device, cuda_output, sizeof(float) * batch_size * out_channels * out_size_r * out_size_c, cudaMemcpyDeviceToHost);
+    double *cuda_input;
+    cudaMalloc((void **)&cuda_input, sizeof(double) * batch_size * in_channels * in_size_r * in_size_c);
+    cudaMemcpy(cuda_input, input, sizeof(double) * batch_size * in_channels * in_size_r * in_size_c, cudaMemcpyHostToDevice);
+    double *cuda_output = conv.basic_forward(grid, block, cuda_input, batch_size);
+    double *cuda_output_device;
+    cuda_output_device = (double*) malloc (sizeof(double) * batch_size * out_channels * out_size_r * out_size_c);
+    cudaMemcpy(cuda_output_device, cuda_output, sizeof(double) * batch_size * out_channels * out_size_r * out_size_c, cudaMemcpyDeviceToHost);
 
-    float max_error = 0.0;
+    double max_error = 0.0;
     for (int i = 0; i < batch_size * out_channels * out_size_r * out_size_c; ++ i) 
         max_error = max(max_error, fabs(cuda_output_device[i] - cpu_output[i]));
     cout << "Max Error = " << max_error << endl;

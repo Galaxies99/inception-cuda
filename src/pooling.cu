@@ -1,8 +1,8 @@
 # include "pooling.h"
 
-void maxpooling_cpu(float* bottom_data, float* top_data, int* maxidx, const int batch_size, const int channel, const int size, const int kernel_size, const int stride){
+void maxpooling_cpu(double* bottom_data, double* top_data, int* maxidx, const int batch_size, const int channel, const int size, const int kernel_size, const int stride){
     int i , j, u, v, pos, index, idx;
-    float s;
+    double s;
     int len = size / stride + (size % stride != 0);
     
     int input_size = batch_size * channel * size *size;
@@ -33,9 +33,9 @@ void maxpooling_cpu(float* bottom_data, float* top_data, int* maxidx, const int 
     }
 }
 
-void meanpooling_cpu(float* bottom_data, float* top_data, const int batch_size, const int channel, const int size, const int kernel_size, const int stride, const int padding){
+void meanpooling_cpu(double* bottom_data, double* top_data, const int batch_size, const int channel, const int size, const int kernel_size, const int stride, const int padding){
     int i , j, u, v, pos, index;
-    float s;
+    double s;
     int size_padding = size + padding * 2 - kernel_size + 1;
     int len = size_padding / stride + (size_padding % stride != 0);
     
@@ -43,7 +43,7 @@ void meanpooling_cpu(float* bottom_data, float* top_data, const int batch_size, 
     // int output_size = batch_size * channel * len * len;
     int index2;
 
-    float weight = 1.0 / (kernel_size*kernel_size);
+    double weight = 1.0 / (kernel_size*kernel_size);
     // printf("weight is %0.4f\n", weight);
 
     for(int batch_idx = 0; batch_idx < batch_size; batch_idx++){
@@ -70,12 +70,12 @@ void meanpooling_cpu(float* bottom_data, float* top_data, const int batch_size, 
 }
 
 // batch * channel * height * width
-__global__ void maxpool_forward(float* bottom_data, float* top_data, int* maxidx, const int size, const int kernel_size, const int stride)
+__global__ void maxpool_forward(double* bottom_data, double* top_data, int* maxidx, const int size, const int kernel_size, const int stride)
 {
     const int thread_pos = blockIdx.x * blockDim.x + threadIdx.x;
 
     int i , j, u, v, index, idx;
-    float s;
+    double s;
     int len = size / stride + (size % stride != 0);
     int index2 = thread_pos * len * len;
     for (i = 0; i < len; ++i)
@@ -95,12 +95,12 @@ __global__ void maxpool_forward(float* bottom_data, float* top_data, int* maxidx
         }
 }
 
-__global__ void meanpool_forward(float* bottom_data, float* top_data, const int size, const int kernel_size, const int stride, const int padding)
+__global__ void meanpool_forward(double* bottom_data, double* top_data, const int size, const int kernel_size, const int stride, const int padding)
 {
     const int thread_pos = blockIdx.x * blockDim.x + threadIdx.x;
 
     int i , j, u, v, index;
-    float s = 0;
+    double s = 0;
     int size_padding = size + padding * 2 - kernel_size + 1;
     int len = size_padding / stride + (size_padding % stride != 0);
     int index2 = thread_pos * len * len;
@@ -132,13 +132,13 @@ MaxpoolingLayer :: MaxpoolingLayer(int _channels, int _size, int _kernel_size, i
 // Destruction function of maxpooling layer.
 MaxpoolingLayer :: ~MaxpoolingLayer() {}
 
-float* MaxpoolingLayer :: basic_forward(dim3 grid, dim3 block, float *input, const int batch_size) {
-    float *output;
+double* MaxpoolingLayer :: basic_forward(dim3 grid, dim3 block, double *input, const int batch_size) {
+    double *output;
     int* maxidx;
-    cudaMalloc((void **)&output, sizeof(float) * batch_size * output_size);
-    cudaMemset(output, 0, sizeof(float) * batch_size * output_size);
-    cudaMalloc((void **)&maxidx, sizeof(float) * batch_size * output_size);
-    cudaMemset(maxidx, 0, sizeof(float) * batch_size * output_size);
+    cudaMalloc((void **)&output, sizeof(double) * batch_size * output_size);
+    cudaMemset(output, 0, sizeof(double) * batch_size * output_size);
+    cudaMalloc((void **)&maxidx, sizeof(double) * batch_size * output_size);
+    cudaMemset(maxidx, 0, sizeof(double) * batch_size * output_size);
 
     maxpool_forward <<<batch_size, channels>>> (input, output, maxidx, size, kernel_size, stride);
     cudaDeviceSynchronize();
@@ -146,10 +146,10 @@ float* MaxpoolingLayer :: basic_forward(dim3 grid, dim3 block, float *input, con
     return output;
 }
 
-float* MaxpoolingLayer :: cpu_forward(float *input, const int batch_size) {
-    float *output;
+double* MaxpoolingLayer :: cpu_forward(double *input, const int batch_size) {
+    double *output;
     int *maxidx;
-    output = (float *) malloc (sizeof(float) * batch_size * output_size);
+    output = (double *) malloc (sizeof(double) * batch_size * output_size);
     maxidx = (int *) malloc (sizeof(int) * batch_size * output_size);
     maxpooling_cpu(input, output, maxidx, batch_size, channels, size, kernel_size, stride);
     free(maxidx);
@@ -170,19 +170,19 @@ MeanpoolingLayer :: MeanpoolingLayer(int _channels, int _size, int _kernel_size,
 // Destruction function of meanpooling layer.
 MeanpoolingLayer :: ~MeanpoolingLayer() {}
 
-float* MeanpoolingLayer :: basic_forward(dim3 grid, dim3 block, float *input, const int batch_size) {
-    float *output;
-    cudaMalloc((void **)&output, sizeof(float) * batch_size * output_size);
-    cudaMemset(output, 0, sizeof(float) * batch_size * output_size);
+double* MeanpoolingLayer :: basic_forward(dim3 grid, dim3 block, double *input, const int batch_size) {
+    double *output;
+    cudaMalloc((void **)&output, sizeof(double) * batch_size * output_size);
+    cudaMemset(output, 0, sizeof(double) * batch_size * output_size);
 
     meanpool_forward <<<batch_size, channels>>> (input, output, size, kernel_size, stride, padding);
     cudaDeviceSynchronize();
     return output;
 }
 
-float* MeanpoolingLayer :: cpu_forward(float *input, const int batch_size) {
-    float *output;
-    output = (float *) malloc (sizeof(float) * batch_size * output_size);
+double* MeanpoolingLayer :: cpu_forward(double *input, const int batch_size) {
+    double *output;
+    output = (double *) malloc (sizeof(double) * batch_size * output_size);
     meanpooling_cpu(input, output, batch_size, channels, size, kernel_size, stride, padding);
     return output;
 }

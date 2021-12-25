@@ -15,15 +15,15 @@ using namespace std;
 
 
 struct InceptionLayer6params {
-    float *way1_w, *way1_b;
-    float *way23_1_w, *way23_1_b;
-    float *way2_2_w, *way2_2_b;
-    float *way3_2_w, *way3_2_b;
-    float *way45_1_w, *way45_1_b;
-    float *way45_2_w, *way45_2_b;
-    float *way4_3_w, *way4_3_b;
-    float *way5_3_w, *way5_3_b;
-    float *way6_w, *way6_b;
+    double *way1_w, *way1_b;
+    double *way23_1_w, *way23_1_b;
+    double *way2_2_w, *way2_2_b;
+    double *way3_2_w, *way3_2_b;
+    double *way45_1_w, *way45_1_b;
+    double *way45_2_w, *way45_2_b;
+    double *way4_3_w, *way4_3_b;
+    double *way5_3_w, *way5_3_b;
+    double *way6_w, *way6_b;
 };
 
 class InceptionLayer6 {
@@ -34,7 +34,7 @@ class InceptionLayer6 {
     public:
         InceptionLayer6(const int in_channels, const int size);
         void set_params(struct InceptionLayer6params params);
-        float* cpu_forward(float *input, const int batch_size);
-        float* gpu_forward(float *input, const int batch_size);
+        double* cpu_forward(double *input, const int batch_size);
+        double* gpu_forward(double *input, const int batch_size);
         ~InceptionLayer6();
 };

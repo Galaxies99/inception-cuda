@@ -6,4 +6,4 @@
 # include <stdio.h>
 # endif
 
-float init_rand(void);
+double init_rand(void);
