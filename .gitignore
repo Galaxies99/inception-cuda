@@ -6,3 +6,4 @@
 *.fatbin
 .history/
 .vscode/
+test/
