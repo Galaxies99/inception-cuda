@@ -4,7 +4,7 @@
 # include <stdio.h>
 # include "cuda_runtime.h"
 
-void conv_forward_layer(
+void conv_forward(
     cudnnHandle_t& handle,
     double *input,
     double *output,
