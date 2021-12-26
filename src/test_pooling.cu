@@ -14,26 +14,13 @@ const int len = (size - kernel_size) / stride + 1;
 const int len_mean =  (size + padding * 2 - kernel_size) / stride + 1;
 const int output_size_max = channels * len * len;
 const int output_size_mean = channels * len_mean * len_mean;
+
 int maxpool_test() {
     double *input;
 
     input = (double*) malloc (sizeof(double) * batch_size * channels * size * size);
     for (int i = 0; i < batch_size * channels * size * size; ++ i)
         input[i] = (double) (rand() % 32768) / 32768.0;
-
-    // printf("Input:\n");
-    // for(int i = 0; i<batch_size;i++){
-    //     for(int j = 0; j < channels; j++){
-    //         // printf("%d %d\n",i,j);
-    //         printf("------ Batch %d Channel %d ------\n", i, j);
-    //         for(int x=0;x<size;x++){
-    //             for(int y=0;y<size;y++){
-    //                 printf("%0.4f ", input[i*channels*size*size+j*size*size+x*size+y]);
-    //             }
-    //             printf("\n");
-    //         }
-    //     }
-    // }
     
     double *cpu_output = maxpool.cpu_forward(input, batch_size);
 
@@ -48,38 +35,18 @@ int maxpool_test() {
     cuda_output_device = (double*) malloc (sizeof(double) * batch_size * output_size_max);
     cudaMemcpy(cuda_output_device, cuda_output, sizeof(double) * batch_size * output_size_max, cudaMemcpyDeviceToHost);
 
-    // printf("Output:\n");
-    // for(int i = 0; i<batch_size;i++){
-    //     for(int j = 0; j < channels; j++){
-    //         printf("------ Batch %d Channel %d ------\n", i , j);
-    //         for(int x=0;x<len;x++){
-    //             for(int y=0;y<len;y++){
-    //                 printf("%0.4f ", cpu_output[i*channels*len*len+j*len*len+x*len+y]);
-    //             }
-    //             printf("\n");
-    //         }
-    //     }
-    // }
-
-    // printf("Output:\n");
-    // for(int i = 0; i<batch_size;i++){
-    //     for(int j = 0; j < channels; j++){
-    //         printf("------ Batch %d Channel %d ------\n", i , j);
-    //         for(int x=0;x<len;x++){
-    //             for(int y=0;y<len;y++){
-    //                 printf("%0.4f ", cuda_output_device[i*channels*len*len+j*len*len+x*len+y]);
-    //             }
-    //             printf("\n");
-    //         }
-    //     }
-    // }
-
     double max_error = 0.0;
     for (int i = 0; i < batch_size * output_size_max; ++ i) 
         max_error = max(max_error, fabs(cuda_output_device[i] - cpu_output[i]));
     cout << "Max Error = " << max_error << endl;
     if (max_error > 1e-5) cout << "Incorrect.\n";
     else cout << "Correct.\n";
+
+    cudaFree(cuda_input);
+    cudaFree(cuda_output);
+    free(input);
+    free(cpu_output);
+    free(cuda_output_device);
     return 0;    
 }
 
@@ -89,20 +56,6 @@ int meanpool_test() {
     input = (double*) malloc (sizeof(double) * batch_size * channels * size * size);
     for (int i = 0; i < batch_size * channels * size * size; ++ i)
         input[i] = (double) (rand() % 32768) / 32768.0;
-    
-    // printf("Input:\n");
-    // for(int i = 0; i<batch_size;i++){
-    //     for(int j = 0; j < channels; j++){
-    //         // printf("%d %d\n",i,j);
-    //         printf("------ Batch %d Channel %d ------\n", i, j);
-    //         for(int x=0;x<size;x++){
-    //             for(int y=0;y<size;y++){
-    //                 printf("%0.4f ", input[i*channels*size*size+j*size*size+x*size+y]);
-    //             }
-    //             printf("\n");
-    //         }
-    //     }
-    // }
 
     double *cpu_output = meanpool.cpu_forward(input, batch_size);
 
@@ -118,38 +71,18 @@ int meanpool_test() {
     cuda_output_device = (double*) malloc (sizeof(double) * batch_size * output_size_mean);
     cudaMemcpy(cuda_output_device, cuda_output, sizeof(double) * batch_size * output_size_mean, cudaMemcpyDeviceToHost);
 
-    // printf("Output:\n");
-    // for(int i = 0; i<batch_size;i++){
-    //     for(int j = 0; j < channels; j++){
-    //         printf("------ Batch %d Channel %d ------\n", i , j);
-    //         for(int x=0;x<len_mean;x++){
-    //             for(int y=0;y<len_mean;y++){
-    //                 printf("%0.4f ", cpu_output[i*channels*len_mean*len_mean+j*len_mean*len_mean+x*len_mean+y]);
-    //             }
-    //             printf("\n");
-    //         }
-    //     }
-    // }
-
-    // printf("Output:\n");
-    // for(int i = 0; i<batch_size;i++){
-    //     for(int j = 0; j < channels; j++){
-    //         printf("------ Batch %d Channel %d ------\n", i , j);
-    //         for(int x=0;x<len_mean;x++){
-    //             for(int y=0;y<len_mean;y++){
-    //                 printf("%0.4f ", cuda_output_device[i*channels*len_mean*len_mean+j*len_mean*len_mean+x*len_mean+y]);
-    //             }
-    //             printf("\n");
-    //         }
-    //     }
-    // }
-
     double max_error = 0.0;
     for (int i = 0; i < batch_size * output_size_mean; ++ i) 
         max_error = max(max_error, fabs(cuda_output_device[i] - cpu_output[i]));
     cout << "Max Error = " << max_error << endl;
     if (max_error > 1e-5) cout << "Incorrect.\n";
     else cout << "Correct.\n";
+    
+    cudaFree(cuda_input);
+    cudaFree(cuda_output);
+    free(input);
+    free(cpu_output);
+    free(cuda_output_device);
     return 0;    
 }
 

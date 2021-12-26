@@ -78,5 +78,10 @@ int main() {
     if (max_error > 1e-5) cout << "Incorrect." << endl;
     else cout << "Correct." << endl;
     
+    cudaFree(cuda_input);
+    cudaFree(cuda_output);
+    free(input);
+    free(cpu_output);
+    free(cuda_output_device);
     return 0;   
 }

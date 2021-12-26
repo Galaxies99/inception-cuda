@@ -39,7 +39,6 @@ int main() {
     cudnn_output_device = (double*) malloc (sizeof(double) * batch_size * out_channels * out_size_r * out_size_c);
     cudaMemcpy(cudnn_output_device, cudnn_output, sizeof(double) * batch_size * out_channels * out_size_r * out_size_c, cudaMemcpyDeviceToHost);
     
-
     double max_error = 0.0;
     double max_error_cudnn = 0.0;
     for (int i = 0; i < batch_size * out_channels * out_size_r * out_size_c; ++ i) {
@@ -50,5 +49,14 @@ int main() {
     cout << "Max Error (CUDNN vs CPU) = " << max_error_cudnn << endl;
     if (max_error > 1e-5 || max_error_cudnn > 1e-5) cout << "Incorrect." << endl;
     else cout << "Correct." << endl;
+
+    cudnnDestroy(cudnn);
+    cudaFree(cuda_input);
+    cudaFree(cuda_output);
+    cudaFree(cudnn_output);
+    free(input);
+    free(cpu_output);
+    free(cuda_output_device);
+    free(cudnn_output_device);
     return 0;   
 }
