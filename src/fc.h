@@ -5,7 +5,6 @@
 # include <stdio.h>
 # include <cudnn_v8.h>
 
-# include "conv.h"
 # include "utils.h"
 # include "cudnn_utils.h"
 # include "cuda_runtime.h"
