@@ -167,3 +167,22 @@ class InceptionLayer6 {
         double* gpu_forward(double *input, const int batch_size);
         ~InceptionLayer6();
 };
+
+struct InceptionOutputLayerparams {
+    double *fc_w, *fc_b;
+};
+
+class InceptionOutputLayer {
+    private:
+        int in_channels, size, out_channels, out_size;
+        FullyConnectedLayer fc;
+        MeanpoolingLayer avgpool;
+    public:
+        InceptionOutputLayer(const int in_channels, const int size);
+        int get_out_size() const;
+        int get_out_channels() const;
+        void set_params(struct InceptionOutputLayerparams params);
+        double* cpu_forward(double *input, const int batch_size);
+        double* gpu_forward(double *input, const int batch_size);
+        ~InceptionOutputLayer();
+};

@@ -679,3 +679,40 @@ double* InceptionLayer6 :: gpu_forward(double *input, const int batch_size) {
 }
 
 InceptionLayer6 :: ~InceptionLayer6() {}
+
+
+
+InceptionOutputLayer :: InceptionOutputLayer(const int in_channels, const int size) : in_channels(in_channels), size(size), fc(2048, 1000), avgpool(in_channels, size, size, 1, 0) {
+    out_size = 1;
+    out_channels = 1000;
+}
+
+int InceptionOutputLayer :: get_out_size() const {
+    return out_size;
+}
+
+int InceptionOutputLayer :: get_out_channels() const {
+    return out_channels;
+}
+
+void InceptionOutputLayer :: set_params(struct InceptionOutputLayerparams params) {
+    fc.set_params(params.fc_w, params.fc_b);
+}
+
+double* InceptionOutputLayer :: cpu_forward(double *input, const int batch_size) {
+    double *avg_o = avgpool.cpu_forward(input, batch_size);
+    double *final = fc.cpu_forward(avg_o, batch_size);
+    free(avg_o);
+    return final;
+}
+
+double* InceptionOutputLayer :: gpu_forward(double *input, const int batch_size) {
+    dim3 grid_conv(8, batch_size);
+    dim3 block_conv(32);
+    double *avg_o = avgpool.basic_forward(grid_conv, block_conv, input, batch_size);
+    double *final = fc.basic_forward(grid_conv, block_conv, avg_o, batch_size);
+    cudaFree(avg_o);
+    return final;
+}
+
+InceptionOutputLayer :: ~InceptionOutputLayer() {}
