@@ -104,3 +104,174 @@ void FullyConnectedLayer :: set_params(double *_h_weight, double *_h_bias) {
     cudaMemcpy(weight, h_weight, sizeof(double) * weight_N, cudaMemcpyHostToDevice);
     cudaMemcpy(bias, h_bias, sizeof(double) * bias_N, cudaMemcpyHostToDevice);
 }
+
+void fc_cudnn_forward(
+    cudnnHandle_t& handle,
+    double *input,
+    double *output,
+    double *weight,
+    double *bias,
+    const int batch_size,
+    const int in_channels,
+    const int out_channels
+) {
+    cudnnTensorDescriptor_t input_descriptor;
+    checkCUDNN(cudnnCreateTensorDescriptor(&input_descriptor));
+	checkCUDNN(
+        cudnnSetTensor4dDescriptor(
+            input_descriptor,
+            CUDNN_TENSOR_NCHW,
+            CUDNN_DATA_DOUBLE,
+            batch_size,
+            in_channels,
+            1,
+            1
+        )
+    );
+    cudnnFilterDescriptor_t kernel_descriptor;
+    checkCUDNN(cudnnCreateFilterDescriptor(&kernel_descriptor));
+    checkCUDNN(
+        cudnnSetFilter4dDescriptor(
+            kernel_descriptor,
+            CUDNN_DATA_DOUBLE,
+            CUDNN_TENSOR_NCHW,
+            out_channels,
+            in_channels,
+            1,
+            1
+        )
+    );
+    cudnnConvolutionDescriptor_t convolution_descriptor;
+    checkCUDNN(cudnnCreateConvolutionDescriptor(&convolution_descriptor));
+    checkCUDNN(
+        cudnnSetConvolution2dDescriptor(
+            convolution_descriptor,
+            0,
+            0,
+            1,
+            1,
+            1,
+            1,
+            CUDNN_CROSS_CORRELATION,
+            CUDNN_DATA_DOUBLE
+        )
+    );
+    cudnnTensorDescriptor_t output_descriptor;
+    checkCUDNN(cudnnCreateTensorDescriptor(&output_descriptor));
+	checkCUDNN(
+        cudnnSetTensor4dDescriptor(
+            output_descriptor,
+            CUDNN_TENSOR_NCHW,
+            CUDNN_DATA_DOUBLE,
+            batch_size,
+            out_channels,
+            1,
+            1
+        )
+    );
+    cudnnConvolutionFwdAlgo_t convolution_algorithm;
+    cudnnConvolutionFwdAlgoPerf_t convolution_algorithm_perf[4];
+    int returned_cnt;
+    checkCUDNN(
+        cudnnGetConvolutionForwardAlgorithm_v7(
+            handle,
+            input_descriptor,
+            kernel_descriptor,
+            convolution_descriptor,
+            output_descriptor,
+            4,
+            &returned_cnt,
+            convolution_algorithm_perf
+        )
+    );
+    bool found_algo = false;
+    for (int n = 0; n < returned_cnt; ++ n) {
+        if (convolution_algorithm_perf[n].status == CUDNN_STATUS_SUCCESS && 
+            convolution_algorithm_perf[n].algo != CUDNN_CONVOLUTION_FWD_ALGO_WINOGRAD_NONFUSED) {
+            convolution_algorithm = convolution_algorithm_perf[n].algo;
+            found_algo = true;
+            break;
+        }
+    }
+    if (! found_algo) {
+        std :: cerr << "No convolution algorithm is found." << std :: endl;
+        std :: exit(EXIT_FAILURE);
+    }
+    size_t workspace_bytes;
+    checkCUDNN(
+        cudnnGetConvolutionForwardWorkspaceSize(
+            handle,
+            input_descriptor,
+            kernel_descriptor,
+            convolution_descriptor,
+            output_descriptor,
+            convolution_algorithm,
+            &workspace_bytes
+        )
+    );
+    if (workspace_bytes == 0) workspace_bytes = (size_t)(1 << 23);
+    void *workspace = NULL;
+    cudaMalloc(&workspace, workspace_bytes);
+    const double alpha = 1.0, beta = 0.0;
+    const size_t output_bytes = sizeof(double) * batch_size * out_channels;
+    checkCUDNN(
+        cudnnConvolutionForward(
+            handle,
+            &alpha,
+            input_descriptor,
+            input,
+            kernel_descriptor,
+            weight,
+            convolution_descriptor,
+            convolution_algorithm,
+            workspace,
+            output_bytes,
+            &beta,
+            output_descriptor,
+            output
+        )
+    );
+
+    cudaFree(workspace);
+
+    if (bias != NULL) {
+        cudnnTensorDescriptor_t bias_descriptor;
+        checkCUDNN(cudnnCreateTensorDescriptor(&bias_descriptor));
+        checkCUDNN(
+            cudnnSetTensor4dDescriptor(
+                bias_descriptor,
+                CUDNN_TENSOR_NCHW,
+                CUDNN_DATA_DOUBLE,
+                1,
+                out_channels,
+                1,
+                1
+            )
+        );
+        checkCUDNN(
+            cudnnAddTensor(
+                handle,
+                &alpha,
+                bias_descriptor,
+                bias,
+                &alpha,
+                output_descriptor,
+                output
+            )
+        );
+        cudnnDestroyTensorDescriptor(bias_descriptor);
+    }
+
+    cudnnDestroyTensorDescriptor(input_descriptor);
+    cudnnDestroyTensorDescriptor(output_descriptor);
+    cudnnDestroyFilterDescriptor(kernel_descriptor);
+    cudnnDestroyConvolutionDescriptor(convolution_descriptor);
+}
+
+double* FullyConnectedLayer :: cudnn_forward(cudnnHandle_t &handle, double *input, const int batch_size) {
+    double *output;
+    cudaMalloc((void **)&output, sizeof(double) * batch_size * output_N);
+    cudaMemset(output, 0, sizeof(double) * batch_size * output_N);
+    fc_cudnn_forward(handle, input, output, weight, bias, batch_size, in_features, out_features);
+    return output;
+}
