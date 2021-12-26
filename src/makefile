@@ -12,6 +12,8 @@ all:
 	/usr/local/cuda-10.2/bin/nvcc -arch=sm_60 -fmad=false -lcuda -lcublas -lineinfo activation.cu test_activation.cu -o ../test/test_activation -Wno-deprecated-gpu-targets
 	/usr/local/cuda-10.2/bin/nvcc -arch=sm_60 -fmad=false -lcuda -lcublas -lineinfo opers.cu test_opers.cu -o ../test/test_opers -Wno-deprecated-gpu-targets 
 
+	/usr/local/cuda-10.2/bin/nvcc -arch=sm_60 -fmad=false -lcuda -lcublas -lineinfo utils.cu conv.cu fc.cu pooling.cu activation.cu opers.cu layers.cu inception.cu test_inception.cu -o ../test/test_inception -Wno-deprecated-gpu-targets
+
 clean:
 	rm ../test/test_layer1
 	rm ../test/test_layer2
@@ -26,3 +28,4 @@ clean:
 	rm ../test/test_pooling
 	rm ../test/test_activation
 	rm ../test/test_opers
+	rm ../test/test_inception

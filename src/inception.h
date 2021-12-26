@@ -13,11 +13,11 @@
 
 struct InceptionParams {
     InceptionLayer1params param_l1;
-    InceptionLayer2params param_l2;
+    InceptionLayer2params param_l2_1, param_l2_2, param_l2_3;
     InceptionLayer3params param_l3;
-    InceptionLayer4params param_l4;
+    InceptionLayer4params param_l4_1, param_l4_2, param_l4_3, param_l4_4;
     InceptionLayer5params param_l5;
-    InceptionLayer6params param_l6;
+    InceptionLayer6params param_l6_1, param_l6_2;
     InceptionOutputLayerparams param_output;
 };
 
