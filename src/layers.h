@@ -9,7 +9,6 @@
 # include "opers.h"
 # include "fc.h"
 # include <stdio.h>
-# endif
 
 
 struct InceptionLayer1params {
@@ -186,3 +185,5 @@ class InceptionOutputLayer {
         double* gpu_forward(double *input, const int batch_size);
         ~InceptionOutputLayer();
 };
+
+# endif

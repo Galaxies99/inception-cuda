@@ -4,7 +4,6 @@
 # include "cuda_runtime.h"
 # include "utils.h"
 # include <stdio.h>
-# endif
 
 
 // Fully Connected Layer
@@ -26,3 +25,5 @@ class FullyConnectedLayer {
 void fc_forward_cpu(double *input, double *output, double *weight, double *bias, const int batch_size, const int in_features, const int out_features);
 __global__ void fc_basic_weight_forward(double *input, double *output, double *weight, const int batch_size, const int in_features, const int out_features);
 __global__ void fc_basic_bias_forward(double *input, double *output, double *bias, const int batch_size, const int in_features, const int out_features);
+
+# endif

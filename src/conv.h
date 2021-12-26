@@ -4,8 +4,6 @@
 # include "cuda_runtime.h"
 # include "utils.h"
 # include <stdio.h>
-# endif
-
 
 // Convolution
 class ConvolutionLayer {
@@ -28,3 +26,5 @@ class ConvolutionLayer {
 void conv_forward_cpu(double *input, double *output, double *weight, double *bias, const int batch_size, const int in_channels, const int out_channels, const int size_r, const int size_c, const int out_size_r, const int out_size_c, const int kernel_size_r, const int kernel_size_c, const int stride_r, const int stride_c, const int padding_r, const int padding_c);
 __global__ void conv_forward_basic_weight(double *input, double *output, double *weight, const int batch_size, const int in_channels, const int out_channels, const int size_r, const int size_c, const int out_size_r, const int out_size_c, const int kernel_size_r, const int kernel_size_c, const int stride_r, const int stride_c, const int padding_r, const int padding_c);
 __global__ void conv_forward_basic_bias(double *input, double *output, double *bias, const int batch_size, const int in_channels, const int out_channels, const int size_r, const int size_c, const int out_size_r, const int out_size_c, const int kernel_size_r, const int kernel_size_c, const int stride_r, const int stride_c, const int padding_r, const int padding_c);
+
+# endif

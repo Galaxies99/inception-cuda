@@ -4,6 +4,7 @@
 # include <math.h>
 # include <stdlib.h>
 # include <stdio.h>
-# endif
 
 double init_rand(void);
+
+# endif

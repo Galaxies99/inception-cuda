@@ -3,7 +3,6 @@
 # include "cuda_runtime.h"
 # include "utils.h"
 # include <stdio.h>
-# endif
 
 void maxpooling_cpu(double*, double*, int*, const int, const int, const int, const int, const int);
 void meanpooling_cpu(double*, double*, const int, const int, const int, const int, const int, const int);
@@ -32,3 +31,5 @@ class MeanpoolingLayer{
         double* cpu_forward(double *input, const int batch_size);
         ~MeanpoolingLayer();
 };
+
+# endif
