@@ -9,10 +9,10 @@
 
 
 Inception :: Inception(const int in_channels, const int size) : in_channels(in_channels), size(size), layer1(in_channels, size), layer2_1(192, 35, 32), layer2_2(256, 35, 64), layer2_3(288, 35, 64), layer3(288, 35), layer4_1(768, 17), layer4_2(768, 17), layer4_3(768, 17), layer4_4(768, 17), layer5(768, 17), layer6_1(1280, 8), layer6_2(2048, 8), outputlayer(2048, 8){
-    // out_size = 1;
-    // out_channels = 1000;    
-    out_size = 35;
-    out_channels = 192;
+    out_size = 1;
+    out_channels = 1000;    
+    // out_size = 35;
+    // out_channels = 288;
 }
 
 int Inception :: get_out_size() const {
@@ -41,17 +41,17 @@ void Inception :: set_params(struct InceptionParams params) {
 
 double* Inception :: cpu_forward(double *input, const int batch_size) {
     double *layer1_o = layer1.cpu_forward(input, batch_size);
-    return layer1_o;
+    
     double *layer2_1_o = layer2_1.cpu_forward(layer1_o, batch_size);
     free(layer1_o);
     double *layer2_2_o = layer2_2.cpu_forward(layer2_1_o, batch_size);
     free(layer2_1_o);
     double *layer2_3_o = layer2_3.cpu_forward(layer2_2_o, batch_size);
     free(layer2_2_o);
+    
+
     double *layer3_o = layer3.cpu_forward(layer2_3_o, batch_size);
     free(layer2_3_o);
-
-    // return layer3_o;
 
     double *layer4_1_o = layer4_1.cpu_forward(layer3_o, batch_size);
     free(layer3_o);
@@ -79,17 +79,16 @@ double* Inception :: cpu_forward(double *input, const int batch_size) {
 double* Inception :: gpu_forward(double *input, const int batch_size) {
     
     double *layer1_o = layer1.gpu_forward(input, batch_size);
-    return layer1_o;
+    // return layer1_o;
     double *layer2_1_o = layer2_1.gpu_forward(layer1_o, batch_size);
     cudaFree(layer1_o);
     double *layer2_2_o = layer2_2.gpu_forward(layer2_1_o, batch_size);
     cudaFree(layer2_1_o);
     double *layer2_3_o = layer2_3.gpu_forward(layer2_2_o, batch_size);
     cudaFree(layer2_2_o);
+
     double *layer3_o = layer3.gpu_forward(layer2_3_o, batch_size);
     cudaFree(layer2_3_o);
-
-    // return layer3_o;
 
     double *layer4_1_o = layer4_1.gpu_forward(layer3_o, batch_size);
     cudaFree(layer3_o);

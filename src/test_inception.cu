@@ -6,7 +6,7 @@
 
 using namespace std;
 
-const int batch_size = 4, in_channels = 3, size = 299;// out_channels = 192, output_size = 35;
+const int batch_size = 4, in_channels = 3, size = 299;
 Inception inc(in_channels, size);
 
 int main() {
@@ -31,10 +31,15 @@ int main() {
     cuda_output_device = (double*) malloc (sizeof(double) * output_N);
     cudaMemcpy(cuda_output_device, cuda_output, sizeof(double) * output_N, cudaMemcpyDeviceToHost);
 
+    double mean_error = 0.0;
+    double weight = 1.0 / output_N;
     double max_error = 0.0;
-    for (int i = 0; i < output_N; ++ i)
+    for (int i = 0; i < output_N; ++ i){
         max_error = max(max_error, fabs(cuda_output_device[i] - cpu_output[i]));
+        mean_error += fabs(cuda_output_device[i] - cpu_output[i]) * weight;
+    }
     cout << "Max Error = " << max_error << endl;
+    cout << "Mean Error = " << mean_error << endl;
     if (max_error > 1e-5) cout << "Incorrect." << endl;
     else cout << "Correct." << endl;
     return 0; 
