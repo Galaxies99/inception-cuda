@@ -162,3 +162,95 @@ double* MeanpoolingLayer :: cpu_forward(double *input, const int batch_size) {
     meanpooling_cpu(input, output, batch_size, channels, size, kernel_size, stride, padding);
     return output;
 }
+
+void pooling_cudnn_forward(
+    cudnnHandle_t& handle,
+    double *input,
+    double *output,
+    const int batch_size,
+    const int channels,
+    const int size,
+    const int kernel_size,
+    const int stride,
+    const int padding,
+    const cudnnPoolingMode_t mode
+) {
+    cudnnTensorDescriptor_t input_descriptor;
+    checkCUDNN(cudnnCreateTensorDescriptor(&input_descriptor));
+	checkCUDNN(
+        cudnnSetTensor4dDescriptor(
+            input_descriptor,
+            CUDNN_TENSOR_NCHW,
+            CUDNN_DATA_DOUBLE,
+            batch_size,
+            channels,
+            size,
+            size
+        )
+    );
+    
+    const int out_size = (size - kernel_size + 2 * padding) / stride + 1;
+    cudnnTensorDescriptor_t output_descriptor;
+    checkCUDNN(cudnnCreateTensorDescriptor(&output_descriptor));
+    checkCUDNN(
+        cudnnSetTensor4dDescriptor(
+            output_descriptor,
+            CUDNN_TENSOR_NCHW,
+            CUDNN_DATA_DOUBLE,
+            batch_size,
+            channels,
+            out_size,
+            out_size
+        )
+    );
+
+    cudnnPoolingDescriptor_t pooling_descriptor;
+    checkCUDNN(cudnnCreatePoolingDescriptor(&pooling_descriptor));
+    checkCUDNN(
+        cudnnSetPooling2dDescriptor(
+            pooling_descriptor,
+            mode,
+            CUDNN_PROPAGATE_NAN,
+            kernel_size,
+            kernel_size,
+            padding,
+            padding,
+            stride,
+            stride
+        )
+    );
+
+    const double alpha = 1.0, beta = 0.0;
+    checkCUDNN(
+        cudnnPoolingForward(
+            handle,
+            pooling_descriptor,
+            &alpha,
+            input_descriptor,
+            input,
+            &beta,
+            output_descriptor,
+            output
+        )
+    );
+    
+    cudnnDestroyTensorDescriptor(input_descriptor);
+    cudnnDestroyTensorDescriptor(output_descriptor);
+    cudnnDestroyPoolingDescriptor(pooling_descriptor);
+}
+
+double* MaxpoolingLayer :: cudnn_forward(cudnnHandle_t &handle, double *input, const int batch_size) {
+    double* output;
+    cudaMalloc((void **)&output, sizeof(double) * batch_size * output_size);
+    cudaMemset(output, 0, sizeof(double) * batch_size * output_size);
+    pooling_cudnn_forward(handle, input, output, batch_size, channels, size, kernel_size, stride, 0, CUDNN_POOLING_MAX);
+    return output;
+}
+
+double* MeanpoolingLayer :: cudnn_forward(cudnnHandle_t &handle, double *input, const int batch_size) {
+    double* output;
+    cudaMalloc((void **)&output, sizeof(double) * batch_size * output_size);
+    cudaMemset(output, 0, sizeof(double) * batch_size * output_size);
+    pooling_cudnn_forward(handle, input, output, batch_size, channels, size, kernel_size, stride, padding, CUDNN_POOLING_AVERAGE_COUNT_INCLUDE_PADDING);
+    return output;
+}

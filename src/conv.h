@@ -2,8 +2,8 @@
 # define _CONV_H_
 # include <cuda.h>
 # include <cudnn.h>
-# include <cudnn_v8.h>
 # include <stdio.h>
+# include <cudnn_v8.h>
 
 # include "utils.h"
 # include "cudnn_utils.h"
