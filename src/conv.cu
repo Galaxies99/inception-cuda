@@ -1,3 +1,5 @@
+
+   
 # include "conv.h"
 
 // Construction function of convolution layer.
@@ -147,7 +149,6 @@ void ConvolutionLayer :: get_output_size(int &output_r, int &output_c) {
     output_c = out_size_c;
 }
 
-/*
 void conv_cudnn_forward(
     cudnnHandle_t& handle,
     double *input,
@@ -164,7 +165,9 @@ void conv_cudnn_forward(
     const int stride_r,
     const int stride_c,
     const int padding_r,
-    const int padding_c
+    const int padding_c,
+    const int out_size_r,
+    const int out_size_c
 ) {
     cudnnTensorDescriptor_t input_descriptor;
     checkCUDNN(cudnnCreateTensorDescriptor(&input_descriptor));
@@ -179,7 +182,6 @@ void conv_cudnn_forward(
             size_c
         )
     );
-
     cudnnFilterDescriptor_t kernel_descriptor;
     checkCUDNN(cudnnCreateFilterDescriptor(&kernel_descriptor));
     checkCUDNN(
@@ -193,7 +195,6 @@ void conv_cudnn_forward(
             kernel_size_c
         )
     );
-
     cudnnConvolutionDescriptor_t convolution_descriptor;
     checkCUDNN(cudnnCreateConvolutionDescriptor(&convolution_descriptor));
     checkCUDNN(
@@ -209,10 +210,6 @@ void conv_cudnn_forward(
             CUDNN_DATA_DOUBLE
         )
     );
-
-    const int out_size_r = (size_r - kernel_size_r + 2 * padding_r) / stride_r + 1;
-    const int out_size_c = (size_c - kernel_size_c + 2 * padding_c) / stride_c + 1;
-
     cudnnTensorDescriptor_t output_descriptor;
     checkCUDNN(cudnnCreateTensorDescriptor(&output_descriptor));
 	checkCUDNN(
@@ -226,7 +223,6 @@ void conv_cudnn_forward(
             out_size_c
         )
     );
-
     cudnnConvolutionFwdAlgo_t convolution_algorithm;
     cudnnConvolutionFwdAlgoPerf_t convolution_algorithm_perf[4];
     int returned_cnt;
@@ -242,7 +238,6 @@ void conv_cudnn_forward(
             convolution_algorithm_perf
         )
     );
-
     bool found_algo = false;
     for (int n = 0; n < returned_cnt; ++ n) {
         if (convolution_algorithm_perf[n].status == CUDNN_STATUS_SUCCESS && 
@@ -256,7 +251,6 @@ void conv_cudnn_forward(
         std :: cerr << "No convolution algorithm is found." << std :: endl;
         std :: exit(EXIT_FAILURE);
     }
-
     size_t workspace_bytes;
     checkCUDNN(
         cudnnGetConvolutionForwardWorkspaceSize(
@@ -269,15 +263,11 @@ void conv_cudnn_forward(
             &workspace_bytes
         )
     );
-
-
     if (workspace_bytes == 0) workspace_bytes = (size_t)(1 << 23);
     void *workspace = NULL;
     cudaMalloc(&workspace, workspace_bytes);
-
     const double alpha = 1.0, beta = 0.0;
     const size_t output_bytes = sizeof(double) * batch_size * out_channels * out_size_r * out_size_c;
-
     checkCUDNN(
         cudnnConvolutionForward(
             handle,
@@ -295,6 +285,8 @@ void conv_cudnn_forward(
             output
         )
     );
+
+    cudaFree(workspace);
 
     if (bias != NULL) {
         cudnnTensorDescriptor_t bias_descriptor;
@@ -316,7 +308,7 @@ void conv_cudnn_forward(
                 &alpha,
                 bias_descriptor,
                 bias,
-                &beta,
+                &alpha,
                 output_descriptor,
                 output
             )
@@ -324,7 +316,6 @@ void conv_cudnn_forward(
         cudnnDestroyTensorDescriptor(bias_descriptor);
     }
 
-    cudaFree(workspace);
     cudnnDestroyTensorDescriptor(input_descriptor);
     cudnnDestroyTensorDescriptor(output_descriptor);
     cudnnDestroyFilterDescriptor(kernel_descriptor);
@@ -335,7 +326,6 @@ double* ConvolutionLayer :: cudnn_forward(cudnnHandle_t &handle, double *input, 
     double *output;
     cudaMalloc((void **)&output, sizeof(double) * batch_size * output_N);
     cudaMemset(output, 0, sizeof(double) * batch_size * output_N);
-    conv_cudnn_forward(handle, input, output, weight, bias, batch_size, in_channels, out_channels, size_r, size_c, kernel_size_r, kernel_size_c, stride_r, stride_c, padding_r, padding_c);
+    conv_cudnn_forward(handle, input, output, weight, bias, batch_size, in_channels, out_channels, size_r, size_c, kernel_size_r, kernel_size_c, stride_r, stride_c, padding_r, padding_c, out_size_r, out_size_c);
     return output;
 }
-*/
