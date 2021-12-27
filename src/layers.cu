@@ -283,6 +283,45 @@ double* InceptionLayer2 :: gpu_forward(double *input, const int batch_size) {
     return final;
 }
 
+double* InceptionLayer2 :: cudnn_forward(cudnnHandle_t& handle, double *input, const int batch_size) {
+    dim3 grid_conv(8, batch_size);
+    dim3 block_conv(32);
+    dim3 grid_act(32);
+    dim3 block_act(32);
+    //way1
+    double *way1_o = way1.cudnn_forward(handle, input, batch_size);
+    cudnn_relu(handle, way1_o, batch_size, 64, size, size);
+    //way2
+    double *way2_1_o = way2_1.cudnn_forward(handle, input, batch_size);
+    cudnn_relu(handle, way2_1_o, batch_size, 48, size, size);
+    double *way2_2_o = way2_2.cudnn_forward(handle, way2_1_o, batch_size);
+    cudnn_relu(handle, way2_2_o, batch_size, 64, size, size);
+    cudaFree(way2_1_o);
+    //way3
+    double *way3_1_o = way3_1.cudnn_forward(handle, input, batch_size);
+    cudnn_relu(handle, way3_1_o, batch_size, 64, size, size);
+    double *way3_2_o = way3_2.cudnn_forward(handle, way3_1_o, batch_size);
+    cudnn_relu(handle, way3_2_o, batch_size, 96, size, size);
+    double *way3_3_o = way3_3.cudnn_forward(handle, way3_2_o, batch_size);
+    cudnn_relu(handle, way3_3_o, batch_size, 96, size, size);
+    cudaFree(way3_1_o);
+    cudaFree(way3_2_o);
+    //way4
+    double *way4_o1 = avgpool.cudnn_forward(handle, input, batch_size);
+    double *way4_o = way4.cudnn_forward(handle, way4_o1, batch_size);
+    cudnn_relu(handle, way4_o, batch_size, way4_ch, size, size);
+    cudaFree(way4_o1);
+    //final
+    double *concat_in_final[] = {way1_o, way2_2_o, way3_3_o, way4_o};
+    int concat_ch_final[] = {64, 64, 96, way4_ch};
+    double *final = channel_concat(grid_conv, block_conv, concat_in_final, 4, batch_size, concat_ch_final, size, size);
+    cudaFree(way1_o);
+    cudaFree(way2_2_o);
+    cudaFree(way3_3_o);
+    cudaFree(way4_o);
+    return final;
+}
+
 InceptionLayer2 :: ~InceptionLayer2() {}
 
 InceptionLayer3 :: InceptionLayer3(const int in_channels, const int size) : in_channels(in_channels), size(size), way1(in_channels, 384, size, size, 3, 3, 2, 2, 0, 0), way2_1(in_channels, 64, size, size), way2_2(64, 96, size, size, 3, 3, 1, 1, 1, 1), way2_3(96, 96, size, size, 3, 3, 2, 2, 0, 0), maxpool(in_channels, size, 3, 2) {

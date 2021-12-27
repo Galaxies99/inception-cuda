@@ -50,7 +50,8 @@ int main() {
     cout << "Max Error (CUDNN vs CPU) = " << max_error_cudnn << endl;
     if (max_error > 1e-5 || max_error_cudnn > 1e-5) cout << "Incorrect." << endl;
     else cout << "Correct." << endl;
-
+    
+    cudnnDestroy(cudnn);
     cudaFree(cuda_input);
     cudaFree(cuda_output);
     cudaFree(cudnn_output);

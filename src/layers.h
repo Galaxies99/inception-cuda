@@ -67,6 +67,7 @@ class InceptionLayer2 {
         void set_params(struct InceptionLayer2params params);
         double* cpu_forward(double *input, const int batch_size);
         double* gpu_forward(double *input, const int batch_size);
+        double *cudnn_forward(cudnnHandle_t& handle, double *input, const int batch_size);
         ~InceptionLayer2();
 };
 
