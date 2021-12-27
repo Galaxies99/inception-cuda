@@ -1,31 +1,5 @@
 # include "opers.h"
 
-double* cpu_pad(double* input, const int batch_size, const int channels, const int size, const int pads[]){
-    double *output;
-    int new_r_size = size+pads[0]+pads[2];
-    int new_c_size = size+pads[1]+pads[3];
-    output = (double*) malloc (sizeof(double) * batch_size * channels * new_r_size * new_c_size);
-    int pos, pos_in;
-
-    for (int batch_idx = 0; batch_idx < batch_size; batch_idx++){
-        for (int channel_idx = 0; channel_idx < channels; channel_idx++){
-            for (int row = 0; row < new_r_size;row++){
-                for ( int col = 0; col < new_c_size; col++){
-                    pos = batch_idx * channels * new_r_size * new_c_size + channel_idx * new_r_size * new_c_size + row * new_c_size + col;
-                    if (row<pads[0] || row>=pads[0]+size || col<pads[1] || col>=pads[1]+size){                       
-                        output[pos] = 0;
-                    }
-                    else{
-                        pos_in = batch_idx * channels * size * size + channel_idx * size * size + (row-pads[0]) * size + (col-pads[1]);
-                        output[pos] = input[pos_in];
-                    }
-                }
-            }
-        }
-    }
-    return output;
-}
-
 
 __global__ void forward_gather(double *input, double *output, const int size, const int channels, const int channel_idx) {
     const int batch_id = blockIdx.y;
