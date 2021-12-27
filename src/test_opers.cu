@@ -51,6 +51,11 @@ int main() {
     if (max_error > 1e-5) cout << "Incorrect." << endl;
     else cout << "Correct." << endl;
 
+    cudaFree(cuda_input);
+    free(input);
+    free(cuda_output_device);
+    free(cuda_input_device);
+
     cout << endl << "====> Concat\n";
     double *inputs[4], *cuda_inputs[4];
     const int batch_size = 4, channels[] = {1, 2, 3, 5}, total_channels = 11, size_r = 5, size_c = 5;
@@ -78,10 +83,12 @@ int main() {
     if (max_error > 1e-5) cout << "Incorrect." << endl;
     else cout << "Correct." << endl;
     
-    cudaFree(cuda_input);
-    cudaFree(cuda_output);
-    free(input);
-    free(cpu_output);
-    free(cuda_output_device);
+    for (int i = 0; i < 4; ++ i) {
+        free(inputs[i]);
+        cudaFree(cuda_inputs[i]);
+    }
+    free(cpu_concat_output);
+    free(cuda_concat_output_device);
+    cudaFree(cuda_concat_output);
     return 0;   
 }

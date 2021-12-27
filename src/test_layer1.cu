@@ -31,17 +31,32 @@ int main() {
     cuda_output_device = (double*) malloc (sizeof(double) * output_N);
     cudaMemcpy(cuda_output_device, cuda_output, sizeof(double) * output_N, cudaMemcpyDeviceToHost);
 
+    cudnnHandle_t cudnn;
+    cudnnCreate(&cudnn);
+    cout << "cudnn begin.\n";
+    double *cudnn_output = layer.cudnn_forward(cudnn, cuda_input, batch_size);
+    cout << "cudnn end.\n";
+    double *cudnn_output_device;
+    cudnn_output_device = (double*) malloc (sizeof(double) * output_N);
+    cudaMemcpy(cudnn_output_device, cudnn_output, sizeof(double) * output_N, cudaMemcpyDeviceToHost);
+
     double max_error = 0.0;
-    for (int i = 0; i < output_N; ++ i)
+    double max_error_cudnn = 0.0;
+    for (int i = 0; i < output_N; ++ i) {
         max_error = max(max_error, fabs(cuda_output_device[i] - cpu_output[i]));
-    cout << "Max Error = " << max_error << endl;
-    if (max_error > 1e-5) cout << "Incorrect." << endl;
+        max_error_cudnn = max(max_error_cudnn, fabs(cudnn_output_device[i] - cpu_output[i]));
+    }
+    cout << "Max Error (CUDA vs CPU) = " << max_error << endl;
+    cout << "Max Error (CUDNN vs CPU) = " << max_error_cudnn << endl;
+    if (max_error > 1e-5 || max_error_cudnn > 1e-5) cout << "Incorrect." << endl;
     else cout << "Correct." << endl;
 
     cudaFree(cuda_input);
     cudaFree(cuda_output);
+    cudaFree(cudnn_output);
     free(input);
     free(cpu_output);
     free(cuda_output_device);
+    free(cudnn_output_device);
     return 0; 
 }

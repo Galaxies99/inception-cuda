@@ -11,7 +11,6 @@ __global__ void forward_gather(double *input, double *output, const int size, co
     for (int i = begin_idx; i < end_idx; ++ i){
         i_pos = batch_id * channels * size * size + channel_idx * size * size;
         o_pos = batch_id * size * size;
-
         output[o_pos + i] = input[i_pos + i];
     }
 }
@@ -20,8 +19,8 @@ double* cpu_gather(double *input, const int batch_size, const int size, const in
     double *output;
     output = (double*) malloc (sizeof(double) * batch_size * size * size);
     int i_pos, o_pos;
-    for (int i = 0; i < batch_size;i++){
-        for(int j = 0; j < size * size;j++){
+    for (int i = 0; i < batch_size; ++ i){
+        for(int j = 0; j < size * size; ++ j){
             i_pos = i * channels * size * size + channel_idx * size * size;
             o_pos = i * size * size;
             output[j + o_pos] = input[j + i_pos];

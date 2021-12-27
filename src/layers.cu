@@ -96,7 +96,6 @@ double* InceptionLayer1 :: gpu_forward(double *input, const int batch_size) {
     linear_transform(grid_act, block_act, slice1, batch_size*size*size, way2_w, way2_b);
     linear_transform(grid_act, block_act, slice2, batch_size*size*size, way3_w, way3_b);
 
-    
     double *concat_slice[] = {slice0, slice1, slice2};
     int channel_list[] = {1, 1, 1};
     double *input_new = channel_concat(grid_conv, block_conv, concat_slice, 3, batch_size, channel_list, size, size);
@@ -104,14 +103,11 @@ double* InceptionLayer1 :: gpu_forward(double *input, const int batch_size) {
     cudaFree(slice1);
     cudaFree(slice2);
     
-
     // center processing
-
     double* c_1_o = c_1.basic_forward(grid_conv, block_conv, input_new, batch_size);
     relu(grid_act, block_act, c_1_o, batch_size * 32 * 149 * 149);
     cudaFree(input_new);
     
-
     double* c_2_o = c_2.basic_forward(grid_conv, block_conv, c_1_o, batch_size);
     relu(grid_act, block_act, c_2_o, batch_size * 32 * 147 * 147);
     cudaFree(c_1_o);
@@ -132,6 +128,57 @@ double* InceptionLayer1 :: gpu_forward(double *input, const int batch_size) {
     cudaFree(c_4_o);
     
     double *final = m2.basic_forward(grid_conv, block_conv, c_5_o, batch_size);
+    cudaFree(c_5_o);
+
+    return final;
+}
+
+double* InceptionLayer1 :: cudnn_forward(cudnnHandle_t& handle, double *input, const int batch_size) {
+    dim3 grid_conv(8, batch_size);
+    dim3 block_conv(32);
+    dim3 grid_act(32);
+    dim3 block_act(32);
+
+    double* slice0 = gather(grid_conv, block_conv, input, batch_size, size, in_channels, 0);
+    double* slice1 = gather(grid_conv, block_conv, input, batch_size, size, in_channels, 1);
+    double* slice2 = gather(grid_conv, block_conv, input, batch_size, size, in_channels, 2);
+
+    linear_transform(grid_act, block_act, slice0, batch_size * size * size, way1_w, way1_b);
+    linear_transform(grid_act, block_act, slice1, batch_size * size * size, way2_w, way2_b);
+    linear_transform(grid_act, block_act, slice2, batch_size * size * size, way3_w, way3_b);
+
+    double *concat_slice[] = {slice0, slice1, slice2};
+    int channel_list[] = {1, 1, 1};
+    double *input_new = channel_concat(grid_conv, block_conv, concat_slice, 3, batch_size, channel_list, size, size);
+    cudaFree(slice0);
+    cudaFree(slice1);
+    cudaFree(slice2);
+    
+    // center processing
+    double* c_1_o = c_1.cudnn_forward(handle, input_new, batch_size);
+    cudnn_relu(handle, c_1_o, batch_size, 32, 149, 149);
+    cudaFree(input_new);
+    
+    double* c_2_o = c_2.cudnn_forward(handle, c_1_o, batch_size);
+    cudnn_relu(handle, c_2_o, batch_size, 32, 147, 147);
+    cudaFree(c_1_o);
+
+    double* c_3_o = c_3.cudnn_forward(handle, c_2_o, batch_size);
+    cudnn_relu(handle, c_3_o, batch_size, 64, 147, 147);
+    cudaFree(c_2_o);
+
+    double *maxpool_o = m1.cudnn_forward(handle, c_3_o, batch_size);
+    cudaFree(c_3_o);
+
+    double* c_4_o = c_4.cudnn_forward(handle, maxpool_o, batch_size);
+    cudnn_relu(handle, c_4_o, batch_size, 80, 73, 73);
+    cudaFree(maxpool_o);
+    
+    double* c_5_o = c_5.cudnn_forward(handle, c_4_o, batch_size);
+    cudnn_relu(handle, c_5_o, batch_size, 192, 71, 71);
+    cudaFree(c_4_o);
+    
+    double *final = m2.cudnn_forward(handle, c_5_o, batch_size);
     cudaFree(c_5_o);
 
     return final;

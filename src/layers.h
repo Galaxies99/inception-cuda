@@ -1,15 +1,18 @@
 # ifndef _LAYER_H_
 # define _LAYER_H_
 # include <cuda.h>
-# include "cuda_runtime.h"
-# include "utils.h"
+# include <cudnn.h>
+# include <stdio.h>
+# include <cudnn_v8.h>
+
+# include "fc.h"
 # include "conv.h"
+# include "utils.h"
+# include "opers.h"
 # include "pooling.h"
 # include "activation.h"
-# include "opers.h"
-# include "fc.h"
-# include <stdio.h>
-
+# include "cudnn_utils.h"
+# include "cuda_runtime.h"
 
 struct InceptionLayer1params {
     double way1_w, way1_b;
@@ -37,6 +40,7 @@ class InceptionLayer1 {
         void set_params(struct InceptionLayer1params params);
         double *cpu_forward(double *input, const int batch_size);
         double *gpu_forward(double *input, const int batch_size);
+        double *cudnn_forward(cudnnHandle_t& handle, double *input, const int batch_size);
         ~InceptionLayer1();
 };
 
