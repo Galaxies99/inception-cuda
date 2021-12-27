@@ -9,7 +9,7 @@
 # define INPUTSHAPE 3 * 299 * 299
 # define OUTPUTSHAPE 1000
 # define TESTNUM 10
-# define ITERNUM 500
+# define ITERNUM 1
 double inputArr[TESTNUM][INPUTSHAPE];
 double benchOutArr[TESTNUM][OUTPUTSHAPE];
 
@@ -34,13 +34,18 @@ void readOutput(char *filename)
 void checkOutput(double *out1, double *out2)
 {
     double maxDiff = 0;
+    double meanDiff = 0;
     for (int i = 0; i < OUTPUTSHAPE; i++)
     {
         maxDiff = (fabs(out1[i] - out2[i]) > maxDiff) ? fabs(out1[i] - out2[i]) : maxDiff;
+        meanDiff += (fabs(out1[i] - out2[i])) / OUTPUTSHAPE;
+        if (fabs(out1[i] - out2[i]) > 5) {
+            printf("i = %d, expect %.7lf, found %.7lf\n", i, out1[i], out2[i]);
+        }
     }
     if (maxDiff > 1e-5)
     {
-        printf("Output dismatch. MaxDiff is %.7f\n", maxDiff);
+        printf("Output dismatch. MaxDiff is %.7f, MeanDiff is %.7f\n", maxDiff, meanDiff);
     }
 }
 

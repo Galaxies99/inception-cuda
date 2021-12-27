@@ -14,10 +14,57 @@
 using std :: vector;
 using std :: string;
 
-void set_param(double *&dst, vector <double> src) {
+void set_param(double *&dst, const vector <double> &src) {
     dst = (double*) malloc (sizeof(double) * src.size());
     for (int i = 0; i < src.size(); ++ i)
         dst[i] = src[i];
+}
+
+vector <double> get_param(const vector < vector < vector < double > > > &weights, const vector < vector < string > > &weights_info, const vector < string > &layer_info, string layer, string param) {
+    int idx = -1;
+    for (int i = 0; i < layer_info.size(); ++ i)
+        if (layer_info[i] == layer) {
+            idx = i;
+            break;
+        }
+    if (idx == -1) {
+        std :: cerr << "[Error] Layer not found!\n";
+        exit(1);
+    }
+    int jdx = -1;
+    for (int j = 0; j < weights_info[idx].size(); ++ j)
+        if (weights_info[idx][j] == param) {
+            jdx = j;
+            break;
+        }
+    if (jdx == -1) {
+        std :: cerr << "[Error] Param not found!\n";
+        exit(1);
+    }
+    return weights[idx][jdx];
+}
+
+void to_json(const char *filename, const vector < vector < vector < double > > > &weights, const vector < vector < string > > &weights_info, const vector < string > &layer_info) {
+    FILE *fp;
+    fp = fopen(filename, "w");
+    fprintf(fp, "{\n");
+    assert (weights.size() == layer_info.size() && weights_info.size() == layer_info.size());
+    for (int i = 0; i < layer_info.size(); ++ i) {
+        fprintf(fp, "\"%s\": {\n", layer_info[i].c_str());
+        assert (weights[i].size() == weights_info[i].size());
+        for (int j = 0; j < weights_info[i].size(); ++ j) {
+            fprintf(fp, "\"%s\": [", weights_info[i][j].c_str());
+            for (int k = 0; k < weights[i][j].size(); ++ k)
+                fprintf(fp, "%.10lf%c", weights[i][j][k], ((k == weights[i][j].size() - 1) ? ']' : ','));
+            if (j != weights_info[i].size() - 1) fprintf(fp, ",");
+            fprintf(fp, "\n");
+        }
+        fprintf(fp, "}");
+        if (i != layer_info.size() - 1) fprintf(fp, ",");
+        fprintf(fp, "\n");
+    }
+    fprintf(fp, "}\n");
+    fclose(fp);
 }
 
 Inception load_weights_from_json(const char *filename, bool debug = false) {
@@ -95,7 +142,6 @@ Inception load_weights_from_json(const char *filename, bool debug = false) {
                         cur_weights.push_back(cur_num);
                     }
                     if (ch_num == '}' || ch_num == '"') break;
-                    
                 } 
                 if (ch_num == '}') break;
             }
@@ -123,6 +169,7 @@ Inception load_weights_from_json(const char *filename, bool debug = false) {
             }
             std :: cerr << '\n';
         }
+        // to_json("../data/inceptionV3-check.json", weights, weights_info, layer_info);
     }
     InceptionLayer1params layer1_param;
     layer1_param.way1_w = weights[0][0][0];

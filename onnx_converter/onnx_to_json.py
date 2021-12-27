@@ -12,12 +12,12 @@ if __name__ == '__main__':
     model = onnx.load('../data/inceptionV3.onnx')
     result = {
         "layer1": {
-            "way1_w": 0.458,
-            "way1_b": -0.03,
-            "way2_w": 0.448,
-            "way2_b": -0.088,
-            "way3_w": 0.45,
-            "way3_b": -0.188,
+            "way1_w": 0.4580000042915344,
+            "way1_b": -0.029999999329447746,
+            "way2_w": 0.4480000138282776,
+            "way2_b": -0.08799999952316284,
+            "way3_w": 0.44999998807907104,
+            "way3_b": -0.18799999356269836,
             "c_1_w": get_seperate_weights(model, "926"),
             "c_1_b": get_seperate_weights(model, "927"),
             "c_2_w": get_seperate_weights(model, "929"),
