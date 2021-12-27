@@ -5,6 +5,11 @@
 # include <stdio.h>
 # include <assert.h>
 
+__global__ void forward_pad(double *input, double *output, const int batch_size, const int channels, const int size, const int pads[]);
+double* cpu_pad(double* input, const int batch_size, const int channels, const int size, const int pads[]);
+double* pad(dim3 grid, dim3 block, double *input, const int batch_size, const int channels, const int size, const int pads[]);
+
+
 __global__ void forward_gather(double *input, double *output, const int size, const int channels, const int channel_idx);
 
 double* cpu_gather(double *input, const int batch_size, const int size, const int channels, const int channel_idx);
