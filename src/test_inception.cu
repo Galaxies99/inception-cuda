@@ -1,5 +1,6 @@
 # include "inception.h"
 # include "cuda_runtime.h"
+# include "loader.hpp"
 # include <stdlib.h>
 # include <stdio.h>
 # include <iostream>
@@ -7,10 +8,11 @@
 using namespace std;
 
 const int batch_size = 4, in_channels = 3, size = 299;
-Inception inc(in_channels, size);
 
 int main() {
     double *input;
+
+    Inception inc = load_weights_from_json("../data/inceptionV3.json", true);
 
     input = (double *) malloc (sizeof(double) * batch_size * in_channels * size * size);
     for (int i = 0; i < batch_size * in_channels * size * size; ++i)
