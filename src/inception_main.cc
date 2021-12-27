@@ -45,14 +45,13 @@ void checkOutput(double *out1, double *out2)
     }
     if (maxDiff > 1e-5)
     {
-        printf("Output dismatch. MaxDiff is %.7f, MeanDiff is %.7f\n", maxDiff, meanDiff);
+        printf("Output dismatch. MaxDiff is %.7lf, MeanDiff is %.7lf\n", maxDiff, meanDiff);
     }
 }
 
 
 Inception initModel() {
-    Inception net = load_weights_from_json("../data/inceptionV3.json", true);
-    return net;
+    return load_weights_from_json("../data/inceptionV3.json", true);
 }
 
 void inference(Inception &net, double *input, double *output) {
@@ -64,6 +63,7 @@ void inference(Inception &net, double *input, double *output) {
     double *cuda_output = net.cudnn_forward(cudnn, cuda_input, 1);
     cudaMemcpy(output, cuda_output, sizeof(double) * OUTPUTSHAPE, cudaMemcpyDeviceToHost);
     cudnnDestroy(cudnn);
+    cudaFree(cuda_output);
 }
 
 
@@ -76,7 +76,7 @@ int main()
     float sumTime = 0;
     for (int i = 0; i < TESTNUM; i++)
     {
-        double inferOut[1000];
+        double inferOut[OUTPUTSHAPE];
         for (int j = 0; j < ITERNUM; j++)
         {
             float Onetime;
