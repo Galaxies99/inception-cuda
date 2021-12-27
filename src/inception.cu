@@ -1,12 +1,5 @@
 # include "inception.h"
 
-/*
-Inception :: Inception(const int in_channels, const int size) : in_channels(in_channels), size(size), layer1(in_channels, size), layer2_1(layer1.get_out_channels(), layer1.get_out_size(), 32), layer2_2(layer2_1.get_out_channels(), layer2_1.get_out_size(), 64), layer2_3(layer2_2.get_out_channels(), layer2_2.get_out_size(), 64), layer3(layer2_3.get_out_channels(), layer2_3.get_out_size()), layer4_1(layer3.get_out_channels(), layer3.get_out_size()), layer4_2(layer4_1.get_out_channels(), layer4_1.get_out_size()), layer4_3(layer4_2.get_out_channels(), layer4_2.get_out_size()), layer4_4(layer4_3.get_out_channels(), layer4_3.get_out_size()), layer5(layer4_4.get_out_channels(), layer4_4.get_out_size()), layer6_1(layer5.get_out_channels(), layer5.get_out_size()), layer6_2(layer6_1.get_out_channels(), layer6_1.get_out_size()), outputlayer(layer6_2.get_out_channels(), layer6_2.get_out_size()){
-    out_size = 1;
-    out_channels = 1000;
-}
-*/
-
 
 Inception :: Inception(const int in_channels, const int size) : in_channels(in_channels), size(size), layer1(in_channels, size), layer2_1(192, 35, 32), layer2_2(256, 35, 64), layer2_3(288, 35, 64), layer3(288, 35), layer4_1(768, 17), layer4_2(768, 17), layer4_3(768, 17), layer4_4(768, 17), layer5(768, 17), layer6_1(1280, 8), layer6_2(2048, 8), outputlayer(2048, 8){
     out_size = 1;

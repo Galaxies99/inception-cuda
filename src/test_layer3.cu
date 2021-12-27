@@ -41,13 +41,22 @@ int main() {
 
     double max_error = 0.0;
     double max_error_cudnn = 0.0;
+    double max_error_cuda_cudnn = 0.0;
+    double avg_output = 0.0;
+    double max_abs_output = 0.0;
     for (int i = 0; i < output_N; ++ i) {
         max_error = max(max_error, fabs(cuda_output_device[i] - cpu_output[i]));
         max_error_cudnn = max(max_error_cudnn, fabs(cudnn_output_device[i] - cpu_output[i]));
+        max_error_cuda_cudnn = max(max_error_cuda_cudnn, fabs(cudnn_output_device[i] - cuda_output_device[i]));
+        avg_output = avg_output + cpu_output[i] / output_N;
+        max_abs_output = max(max_abs_output, fabs(cpu_output[i]));
     }
+    cout << "Max in output: " << max_abs_output << endl;
+    cout << "Output Scale: " << avg_output << endl;
     cout << "Max Error (CUDA vs CPU) = " << max_error << endl;
     cout << "Max Error (CUDNN vs CPU) = " << max_error_cudnn << endl;
-    if (max_error > 1e-5 || max_error_cudnn > 1e-5) cout << "Incorrect." << endl;
+    cout << "Max Error (CUDA vs CUDNN) = " << max_error_cuda_cudnn << endl;
+    if (max_error > 1e-5 || max_error_cudnn > 1e-5 || max_error_cuda_cudnn > 1e-5) cout << "Incorrect." << endl;
     else cout << "Correct." << endl;
 
     cudnnDestroy(cudnn);

@@ -80,7 +80,6 @@ int main()
             cudaEventCreate(&stop);
             cudaEventRecord(start, 0);
 
-
             inference(net, inputArr[i], inferOut);   // 执行Inference
             
             cudaDeviceSynchronize();

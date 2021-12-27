@@ -14,7 +14,7 @@
 using std :: vector;
 using std :: string;
 
-void set_param(double *dst, vector <double> src) {
+void set_param(double *&dst, vector <double> src) {
     dst = (double*) malloc (sizeof(double) * src.size());
     for (int i = 0; i < src.size(); ++ i)
         dst[i] = src[i];
@@ -114,8 +114,13 @@ Inception load_weights_from_json(const char *filename, bool debug = false) {
         for (int i = 0; i < layer_info.size(); ++ i) {
             assert(weights[i].size() == weights_info[i].size());
             std :: cerr << "  Layer " << i + 1 << " name: " << layer_info[i] << ", total " << weights[i].size() << " params.\n";
-            for (int j = 0; j < weights_info[i].size(); ++ j)
-                std :: cerr << "    Param " << j + 1 << " name: " << weights_info[i][j] << ", length " << weights[i][j].size() << ".\n";
+            for (int j = 0; j < weights_info[i].size(); ++ j) {
+                double avg = 0.0;
+                for (int k = 0; k < weights[i][j].size(); ++ k)
+                    avg += weights[i][j][k];
+                avg = avg / weights[i][j].size();
+                std :: cerr << "    Param " << j + 1 << " name: " << weights_info[i][j] << ", length " << weights[i][j].size() << ", avg: " << avg << ".\n";
+            }
             std :: cerr << '\n';
         }
     }

@@ -19,7 +19,7 @@ int InceptionLayer1 :: get_out_channels() const {
     return out_channels;
 }
 
-void InceptionLayer1 :: set_params(struct InceptionLayer1params params) {    
+void InceptionLayer1 :: set_params(struct InceptionLayer1params params) {
     way1_w = params.way1_w;
     way1_b = params.way1_b;
     way2_w = params.way2_w;
