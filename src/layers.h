@@ -90,6 +90,7 @@ class InceptionLayer3 {
         void set_params(struct InceptionLayer3params params);
         double* cpu_forward(double *input, const int batch_size);
         double* gpu_forward(double *input, const int batch_size);
+        double *cudnn_forward(cudnnHandle_t& handle, double *input, const int batch_size);
         ~InceptionLayer3();
 };
 
@@ -118,6 +119,7 @@ class InceptionLayer4 {
         void set_params(struct InceptionLayer4params params);
         double* cpu_forward(double *input, const int batch_size);
         double* gpu_forward(double *input, const int batch_size);
+        double *cudnn_forward(cudnnHandle_t& handle, double *input, const int batch_size);
         ~InceptionLayer4();
 };
 
@@ -142,6 +144,7 @@ class InceptionLayer5 {
         void set_params(struct InceptionLayer5params params);
         double *cpu_forward(double *input, const int batch_size);
         double *gpu_forward(double *input, const int batch_size);
+        double *cudnn_forward(cudnnHandle_t& handle, double *input, const int batch_size);
         ~InceptionLayer5();
 };
 
@@ -169,6 +172,7 @@ class InceptionLayer6 {
         void set_params(struct InceptionLayer6params params);
         double* cpu_forward(double *input, const int batch_size);
         double* gpu_forward(double *input, const int batch_size);
+        double *cudnn_forward(cudnnHandle_t& handle, double *input, const int batch_size);
         ~InceptionLayer6();
 };
 
@@ -188,6 +192,7 @@ class InceptionOutputLayer {
         void set_params(struct InceptionOutputLayerparams params);
         double* cpu_forward(double *input, const int batch_size);
         double* gpu_forward(double *input, const int batch_size);
+        double *cudnn_forward(cudnnHandle_t& handle, double *input, const int batch_size);
         ~InceptionOutputLayer();
 };
 
