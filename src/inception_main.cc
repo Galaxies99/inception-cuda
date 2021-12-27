@@ -64,10 +64,10 @@ void inference(Inception &net, double *input, double *output) {
 
 int main()
 {
-    Inception net = initModel();    // 读取网络权重
+    Inception net = initModel();
     
-    readInput("/models/inceptionInput.txt");   // 读取输入
-    readOutput("/models/inceptionOutput.txt"); // 读取标准输出
+    readInput("/models/inceptionInput.txt"); 
+    readOutput("/models/inceptionOutput.txt"); 
     float sumTime = 0;
     for (int i = 0; i < TESTNUM; i++)
     {
@@ -80,14 +80,14 @@ int main()
             cudaEventCreate(&stop);
             cudaEventRecord(start, 0);
 
-            inference(net, inputArr[i], inferOut);   // 执行Inference
+            inference(net, inputArr[i], inferOut);
             
             cudaDeviceSynchronize();
             cudaEventRecord(stop, 0);
             cudaEventSynchronize(stop);
             cudaEventElapsedTime(&Onetime, start, stop);
             
-            sumTime += Onetime; // 累加单次推理消耗时间
+            sumTime += Onetime;
         }
         checkOutput(benchOutArr[i], inferOut);
     }
