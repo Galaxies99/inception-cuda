@@ -9,7 +9,8 @@ using namespace std;
 
 int main() {
     double *input;
-    const int size = 1024;
+    const int batch_size = 8, channel = 2, f_size = 8;
+    int size = batch_size * channel * f_size * f_size;
 
     input = (double*) malloc (sizeof(double) * size);
     for (int i = 0; i < size; ++ i)
@@ -29,11 +30,22 @@ int main() {
     cuda_output_device = (double*) malloc (sizeof(double) * size);
     cudaMemcpy(cuda_output_device, cuda_output, sizeof(double) * size, cudaMemcpyDeviceToHost);
 
+    cudnnHandle_t cudnn;
+    cudnnCreate(&cudnn);
+    double *cudnn_output = cudnn_relu(cudnn, cuda_input, batch_size, channel, f_size, f_size);
+    double *cudnn_output_device;
+    cudnn_output_device = (double*) malloc (sizeof(double) * size);
+    cudaMemcpy(cudnn_output_device, cudnn_output, sizeof(double) * size, cudaMemcpyDeviceToHost);
+
     double max_error = 0.0;
-    for (int i = 0; i < size; ++ i) 
+    double max_error_cudnn = 0.0;
+    for (int i = 0; i < size; ++ i) {
         max_error = max(max_error, fabs(cuda_output_device[i] - cpu_output[i]));
-    cout << "Max Error = " << max_error << endl;
-    if (max_error > 1e-5) cout << "Incorrect." << endl;
+        max_error_cudnn = max(max_error_cudnn, fabs(cudnn_output_device[i] - cpu_output[i]));
+    }
+    cout << "Max Error (CUDA vs CPU) = " << max_error << endl;
+    cout << "Max Error (CUDNN vs CPU) = " << max_error_cudnn << endl;
+    if (max_error > 1e-5 || max_error_cudnn > 1e-5) cout << "Incorrect." << endl;
     else cout << "Correct." << endl;
 
     cout << endl << "Inplace testing: \n";
@@ -49,5 +61,11 @@ int main() {
     if (max_error > 1e-5) cout << "Incorrect." << endl;
     else cout << "Correct." << endl;
 
+    cudnnDestroy(cudnn);
+    cudaFree(cuda_input);
+    free(input);
+    free(cuda_output_device);
+    free(cudnn_output_device);
+    free(cuda_input_device);
     return 0;   
 }
