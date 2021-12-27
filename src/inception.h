@@ -1,15 +1,19 @@
 # ifndef _INCEPTION_H_
 # define _INCEPTION_H_
 # include <cuda.h>
-# include "cuda_runtime.h"
-# include "layers.h"
-# include "utils.h"
+# include <cudnn.h>
+# include <stdio.h>
+# include <cudnn_v8.h>
+
+# include "fc.h"
 # include "conv.h"
+# include "utils.h"
+# include "opers.h"
+# include "layers.h"
 # include "pooling.h"
 # include "activation.h"
-# include "opers.h"
-# include "fc.h"
-# include <stdio.h>
+# include "cudnn_utils.h"
+# include "cuda_runtime.h"
 
 struct InceptionParams {
     InceptionLayer1params param_l1;
@@ -38,8 +42,9 @@ class Inception {
         int get_out_size() const;
         int get_out_channels() const;
         void set_params(struct InceptionParams params);
-        double *cpu_forward(double *input, const int batch_size);
-        double *gpu_forward(double *input, const int batch_size);
+        double* cpu_forward(double *input, const int batch_size);
+        double* gpu_forward(double *input, const int batch_size);
+        double* cudnn_forward(cudnnHandle_t &handle, double *input, const int batch_size);
         ~Inception();
 };
 

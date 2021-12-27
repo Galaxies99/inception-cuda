@@ -49,7 +49,6 @@ double* Inception :: cpu_forward(double *input, const int batch_size) {
     double *layer2_3_o = layer2_3.cpu_forward(layer2_2_o, batch_size);
     free(layer2_2_o);
     
-
     double *layer3_o = layer3.cpu_forward(layer2_3_o, batch_size);
     free(layer2_3_o);
 
@@ -76,10 +75,9 @@ double* Inception :: cpu_forward(double *input, const int batch_size) {
     return final;
 }
 
-double* Inception :: gpu_forward(double *input, const int batch_size) {
-    
+double* Inception :: gpu_forward(double *input, const int batch_size) { 
     double *layer1_o = layer1.gpu_forward(input, batch_size);
-    // return layer1_o;
+
     double *layer2_1_o = layer2_1.gpu_forward(layer1_o, batch_size);
     cudaFree(layer1_o);
     double *layer2_2_o = layer2_2.gpu_forward(layer2_1_o, batch_size);
@@ -108,6 +106,41 @@ double* Inception :: gpu_forward(double *input, const int batch_size) {
     cudaFree(layer6_1_o);
 
     double *final = outputlayer.gpu_forward(layer6_2_o, batch_size);
+    cudaFree(layer6_2_o);
+    return final;
+}
+
+double* Inception :: cudnn_forward(cudnnHandle_t &handle, double *input, const int batch_size) {
+    double *layer1_o = layer1.cudnn_forward(handle, input, batch_size);
+
+    double *layer2_1_o = layer2_1.cudnn_forward(handle, layer1_o, batch_size);
+    cudaFree(layer1_o);
+    double *layer2_2_o = layer2_2.cudnn_forward(handle, layer2_1_o, batch_size);
+    cudaFree(layer2_1_o);
+    double *layer2_3_o = layer2_3.cudnn_forward(handle, layer2_2_o, batch_size);
+    cudaFree(layer2_2_o);
+
+    double *layer3_o = layer3.cudnn_forward(handle, layer2_3_o, batch_size);
+    cudaFree(layer2_3_o);
+
+    double *layer4_1_o = layer4_1.cudnn_forward(handle, layer3_o, batch_size);
+    cudaFree(layer3_o);
+    double *layer4_2_o = layer4_2.cudnn_forward(handle, layer4_1_o, batch_size);
+    cudaFree(layer4_1_o);
+    double *layer4_3_o = layer4_3.cudnn_forward(handle, layer4_2_o, batch_size);
+    cudaFree(layer4_2_o);
+    double *layer4_4_o = layer4_4.cudnn_forward(handle, layer4_3_o, batch_size);
+    cudaFree(layer4_3_o);
+    
+    double *layer5_o = layer5.cudnn_forward(handle, layer4_4_o, batch_size);
+    cudaFree(layer4_4_o);
+
+    double *layer6_1_o = layer6_1.cudnn_forward(handle, layer5_o, batch_size);
+    cudaFree(layer5_o);
+    double *layer6_2_o = layer6_2.cudnn_forward(handle, layer6_1_o, batch_size);
+    cudaFree(layer6_1_o);
+
+    double *final = outputlayer.cudnn_forward(handle, layer6_2_o, batch_size);
     cudaFree(layer6_2_o);
     return final;
 }
