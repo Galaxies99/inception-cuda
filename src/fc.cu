@@ -1,5 +1,7 @@
 # include "fc.h"
 
+const int TILE_WIDTH = 8;
+
 // Construction function of fully connected layer.
 FullyConnectedLayer :: FullyConnectedLayer(int _in_features, int _out_features) {
     in_features = _in_features;
@@ -60,6 +62,31 @@ __global__ void fc_basic_weight_forward(double *input, double *output, double *w
     }
 }
 
+// FC forward (weight) (optimized)
+__global__ void fc_opt_weight_forward(double *input, double *output, double *weight, const int batch_size, const int in_features, const int out_features) {
+    __shared__ double Wts[TILE_WIDTH][TILE_WIDTH];
+    __shared__ double Ins[TILE_WIDTH];
+
+    const int batch_idx = blockIdx.y;
+    const int block_idx = blockIdx.x;
+    const int thread_idx = threadIdx.x;
+    const int Row = block_idx * TILE_WIDTH + thread_idx;
+    const int Col = batch_idx;
+    double Pvalue = 0;
+
+    for (int m = 0; m < in_features / TILE_WIDTH; ++m) {
+        for (int k = 0; k < TILE_WIDTH; ++k)
+            Wts[thread_idx][k] = weight[Row * in_features + (m * TILE_WIDTH + k)];
+        Ins[thread_idx] = input[Col * in_features + (m * TILE_WIDTH + thread_idx)];
+        __syncthreads();
+
+        for (int k = 0; k < TILE_WIDTH; ++k)
+            Pvalue += Wts[thread_idx][k] * Ins[k];
+        __syncthreads();
+    }
+    output[Col * out_features + Row] = Pvalue;
+}
+
 // FC forward (bias) (basic, no optimization)
 __global__ void fc_basic_bias_forward(double *input, double *output, double *bias, const int batch_size, const int in_features, const int out_features) {
     const int batch_id = blockIdx.y;
@@ -79,6 +106,18 @@ double* FullyConnectedLayer :: basic_forward(dim3 grid, dim3 block, double *inpu
     cudaMalloc((void **)&output, sizeof(double) * batch_size * output_N);
     cudaMemset(output, 0, sizeof(double) * batch_size * output_N);
     fc_basic_weight_forward <<<grid, block>>> (input, output, weight, batch_size, in_features, out_features);
+    fc_basic_bias_forward <<<grid, block>>> (output, output, bias, batch_size, in_features, out_features);
+    cudaDeviceSynchronize();
+    return output;
+}
+
+double* FullyConnectedLayer :: opt_forward(dim3 grid, dim3 block, double *input, const int batch_size) {
+    double *output;
+    cudaMalloc((void **)&output, sizeof(double) * batch_size * output_N);
+    cudaMemset(output, 0, sizeof(double) * batch_size * output_N);
+    dim3 grid_opt(out_features/TILE_WIDTH, batch_size);
+    dim3 block_opt(TILE_WIDTH);
+    fc_opt_weight_forward <<<grid_opt, block_opt>>> (input, output, weight, batch_size, in_features, out_features);
     fc_basic_bias_forward <<<grid, block>>> (output, output, bias, batch_size, in_features, out_features);
     cudaDeviceSynchronize();
     return output;
