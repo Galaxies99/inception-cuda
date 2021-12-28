@@ -11,6 +11,9 @@ import json
 import onnx.numpy_helper as numpy_helper
 
 
+test_id = 0
+
+
 def get_seperate_weights(model, name):
     [w] = [t for t in model.graph.initializer if t.name == name]
     return numpy_helper.to_array(w).copy()
@@ -704,11 +707,13 @@ if __name__ == '__main__':
         input = json.load(fp)
     with open('../data/inceptionOutput.json', 'r') as fp:
         output = json.load(fp);
-    input = torch.FloatTensor(np.array(input['test0']).reshape(1, 3, 299, 299).astype(np.float32))
-    # output = torch.FloatTensor(np.array(output['test0']).reshape(1, 1000).astype(np.float32))
+    input = torch.FloatTensor(np.array(input['test{}'.format(test_id)]).reshape(1, 3, 299, 299).astype(np.float32))
+    output = torch.FloatTensor(np.array(output['test{}'.format(test_id)]).astype(np.float32)).flatten()
     print('[3/5] Input and output data loaded.')
     print('[4/5] Inference ...')
     net_out = net(input).flatten()
-    print(net_out[0], net_out[1], net_out[2], net_out[100])
     print('[4/5] Inference End.')
+    print('[5/5] Check correctness ...')
+    print('MSE:', torch.mean((output - net_out) ** 2).item())
+    print('[5/5] Check finished.')
 
