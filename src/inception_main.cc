@@ -9,7 +9,7 @@
 # define INPUTSHAPE 3 * 299 * 299
 # define OUTPUTSHAPE 1000
 # define TESTNUM 10
-# define ITERNUM 1
+# define ITERNUM 5
 double inputArr[TESTNUM][INPUTSHAPE];
 double benchOutArr[TESTNUM][OUTPUTSHAPE];
 
@@ -36,18 +36,13 @@ void readOutput(char *filename)
 void checkOutput(double *out1, double *out2)
 {
     double maxDiff = 0;
-    double meanDiff = 0;
     for (int i = 0; i < OUTPUTSHAPE; i++)
     {
         maxDiff = (fabs(out1[i] - out2[i]) > maxDiff) ? fabs(out1[i] - out2[i]) : maxDiff;
-        meanDiff += (fabs(out1[i] - out2[i])) / OUTPUTSHAPE;
-        if (fabs(out1[i] - out2[i]) > 5) {
-            printf("i = %d, expect %.7lf, found %.7lf\n", i, out1[i], out2[i]);
-        }
     }
     if (maxDiff > 1e-5)
     {
-        printf("Output dismatch. MaxDiff is %.7lf, MeanDiff is %.7lf\n", maxDiff, meanDiff);
+        printf("Output dismatch. MaxDiff is %.7lf.\n", maxDiff);
     }
 }
 
@@ -57,6 +52,16 @@ Inception initModel() {
 }
 
 void inference(Inception &net, double *input, double *output) {
+    double *cuda_input;
+    cudaMalloc((void **)&cuda_input, sizeof(double) * INPUTSHAPE);
+    cudaMemcpy(cuda_input, input, sizeof(double) * INPUTSHAPE, cudaMemcpyHostToDevice);
+    double *cuda_output = net.gpu_forward(cuda_input, 1);
+    cudaMemcpy(output, cuda_output, sizeof(double) * OUTPUTSHAPE, cudaMemcpyDeviceToHost);
+    cudaFree(cuda_input);
+    cudaFree(cuda_output);
+}
+
+void cudnn_inference(Inception &net, double *input, double *output) {
     cudnnHandle_t cudnn;
     cudnnCreate(&cudnn);
     double *cuda_input;
@@ -98,7 +103,7 @@ int main()
             sumTime += Onetime;
         }
         checkOutput(benchOutArr[i], inferOut);
-        return 0;
     }
     printf("Average Time is: %f\n", (sumTime / TESTNUM / ITERNUM));
+    return 0;
 }

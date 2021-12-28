@@ -1,7 +1,7 @@
 # include "inception.h"
 
 
-Inception :: Inception(const int in_channels, const int size) : in_channels(in_channels), size(size), layer1(in_channels, size), layer2_1(192, 35, 32), layer2_2(256, 35, 64), layer2_3(288, 35, 64), layer3(288, 35), layer4_1(768, 17), layer4_2(768, 17), layer4_3(768, 17), layer4_4(768, 17), layer5(768, 17), layer6_1(1280, 8), layer6_2(2048, 8), outputlayer(2048, 8){
+Inception :: Inception(const int in_channels, const int size) : in_channels(in_channels), size(size), layer1(in_channels, size), layer2_1(192, 35, 32), layer2_2(256, 35, 64), layer2_3(288, 35, 64), layer3(288, 35), layer4_1(768, 17, 128), layer4_2(768, 17, 160), layer4_3(768, 17, 160), layer4_4(768, 17, 192), layer5(768, 17), layer6_1(1280, 8), layer6_2(2048, 8), outputlayer(2048, 8){
     out_size = 1;
     out_channels = 1000;
 }

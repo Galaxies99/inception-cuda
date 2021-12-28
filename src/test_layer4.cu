@@ -6,7 +6,7 @@
 using namespace std;
 
 const int batch_size = 4, in_channels = 768, size = 17;
-InceptionLayer4 layer(in_channels, size);
+InceptionLayer4 layer(in_channels, size, 160);
 
 int main() {
     double *input;

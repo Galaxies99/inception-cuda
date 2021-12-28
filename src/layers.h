@@ -109,11 +109,11 @@ struct InceptionLayer4params {
 
 class InceptionLayer4 {
     private:
-        int in_channels, size, out_channels, out_size;
+        int in_channels, size, out_channels, out_size, mid_channels;
         ConvolutionLayer way1, way2_1, way2_2, way2_3, way3_1, way3_2, way3_3, way3_4, way3_5, way4;
         MeanpoolingLayer meanpool;
     public:
-        InceptionLayer4(const int in_channels, const int size);
+        InceptionLayer4(const int in_channels, const int size, const int mid_channels);
         int get_out_size() const;
         int get_out_channels() const;
         void set_params(struct InceptionLayer4params params);

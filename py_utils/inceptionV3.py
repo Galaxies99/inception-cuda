@@ -288,8 +288,6 @@ class Inception3(nn.Module):
         # N*2048*8*8
         x = F.avg_pool2d(x, kernel_size=8)
         # N*2048*1*1
-        x = F.dropout(x, training=self.training)
-        # N*2048*1*1
         x = x.view(x.size(0), -1)
         # N*2048
         x = self.group1(x)
@@ -697,10 +695,6 @@ if __name__ == '__main__':
             "fc_b": get_seperate_weights(model, "fc.bias")
         }
     }
-    """
-    with open('../data/inceptionV3.json', 'r') as fp:
-        dict = json.load(fp)
-    """
     print('[1/5] Network data loaded.')
     print('[2/5] Setting params ...')
     net.set_params(dict)
@@ -711,11 +705,10 @@ if __name__ == '__main__':
     with open('../data/inceptionOutput.json', 'r') as fp:
         output = json.load(fp);
     input = torch.FloatTensor(np.array(input['test0']).reshape(1, 3, 299, 299).astype(np.float32))
-    output = torch.FloatTensor(np.array(output['test0']).reshape(1, 1000).astype(np.float32))
+    # output = torch.FloatTensor(np.array(output['test0']).reshape(1, 1000).astype(np.float32))
     print('[3/5] Input and output data loaded.')
     print('[4/5] Inference ...')
-    net_out = net(input)
-    delta = net_out - output
-    print(delta[0,0])
+    net_out = net(input).flatten()
+    print(net_out[0], net_out[1], net_out[2], net_out[100])
     print('[4/5] Inference End.')
 
