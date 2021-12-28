@@ -944,7 +944,7 @@ InceptionLayer6 :: ~InceptionLayer6() {}
 
 
 
-InceptionOutputLayer :: InceptionOutputLayer(const int in_channels, const int size) : in_channels(in_channels), size(size), fc(2048, 1000), avgpool(in_channels, size, size, 1, 0) {
+InceptionOutputLayer :: InceptionOutputLayer(const int in_channels, const int size) : in_channels(in_channels), size(size), fc(in_channels, 1000), avgpool(in_channels, size, size, 1, 0) {
     out_size = 1;
     out_channels = 1000;
 }
@@ -978,8 +978,8 @@ double* InceptionOutputLayer :: gpu_forward(double *input, const int batch_size)
 }
 
 double* InceptionOutputLayer :: cudnn_forward(cudnnHandle_t& handle, double *input, const int batch_size) {
-    double *avg_o = avgpool.cudnn_forward(handle, input, batch_size);
-    double *final = fc.cudnn_forward(handle, avg_o, batch_size);
+    double *avg_o = avgpool.cudnn_forward(handle, input, batch_size);    
+    double *final = fc.cudnn_forward(handle, avg_o, batch_size);    
     cudaFree(avg_o);
     return final;
 }

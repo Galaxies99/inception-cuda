@@ -18,8 +18,9 @@ void readInput(char *filename)
     FILE *fp = NULL;
     fp = fopen(filename, "r");
     for (int i = 0; i < TESTNUM; i++)
-        for (int j = 0; j < INPUTSHAPE; j++)
+        for (int j = 0; j < INPUTSHAPE; j++) 
             fscanf(fp, "%lf", &inputArr[i][j]);
+    fclose(fp);
 }
 
 void readOutput(char *filename)
@@ -29,6 +30,7 @@ void readOutput(char *filename)
     for (int i = 0; i < TESTNUM; i++)
         for (int j = 0; j < OUTPUTSHAPE; j++)
             fscanf(fp, "%lf", &benchOutArr[i][j]);
+    fclose(fp);
 }
 
 void checkOutput(double *out1, double *out2)
@@ -63,6 +65,7 @@ void inference(Inception &net, double *input, double *output) {
     double *cuda_output = net.cudnn_forward(cudnn, cuda_input, 1);
     cudaMemcpy(output, cuda_output, sizeof(double) * OUTPUTSHAPE, cudaMemcpyDeviceToHost);
     cudnnDestroy(cudnn);
+    cudaFree(cuda_input);
     cudaFree(cuda_output);
 }
 
@@ -71,8 +74,8 @@ int main()
 {
     Inception net = initModel();
     
-    readInput("/models/inceptionInput.txt"); 
-    readOutput("/models/inceptionOutput.txt"); 
+    readInput("../data/inceptionInput.txt"); 
+    readOutput("../data/inceptionOutput.txt"); 
     float sumTime = 0;
     for (int i = 0; i < TESTNUM; i++)
     {
@@ -95,6 +98,7 @@ int main()
             sumTime += Onetime;
         }
         checkOutput(benchOutArr[i], inferOut);
+        return 0;
     }
     printf("Average Time is: %f\n", (sumTime / TESTNUM / ITERNUM));
 }
