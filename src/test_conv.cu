@@ -50,6 +50,16 @@ int main() {
     if (max_error > 1e-5 || max_error_cudnn > 1e-5) cout << "Incorrect." << endl;
     else cout << "Correct." << endl;
 
+    cout << "\n\nTesting im2col ===>\n";
+    double *cpu_basic_output = conv.cpu_basic_forward(input, batch_size);
+    double *cpu_im2col_output = conv.cpu_im2col_forward(input, batch_size);
+    max_error = 0.0;
+    for (int i = 0; i < batch_size * out_channels * out_size_r * out_size_c; ++ i) 
+        max_error = max(max_error, fabs(cpu_basic_output[i] - cpu_im2col_output[i]));
+    cout << "Max Error (basic vs im2col) = " << max_error << endl;
+    free(cpu_basic_output);
+    free(cpu_im2col_output);
+
     cudnnDestroy(cudnn);
     cudaFree(cuda_input);
     cudaFree(cuda_output);

@@ -44,14 +44,15 @@ void conv_forward_cpu(double* input, double *output, double *weight, double *bia
         for (int out_ch = 0; out_ch < out_channels; ++ out_ch)
             for (int r = 0; r < out_size_r; ++ r)
                 for (int c = 0; c < out_size_c; ++ c) {
-                    output[b * output_N + (out_ch * out_size_r + r) * out_size_c + c] = bias[out_ch];
+                    const int output_idx = b * output_N + (out_ch * out_size_r + r) * out_size_c + c;
+                    output[output_idx] = bias[out_ch];
                     for (int kr = 0; kr < kernel_size_r; ++ kr) {
                         for (int kc = 0; kc < kernel_size_c; ++ kc) {
                             const int input_r = r * stride_r + kr - padding_r;
                             const int input_c = c * stride_c + kc - padding_c;
                             if (input_r >= 0 && input_r < size_r && input_c >= 0 && input_c < size_c) {
                                 for (int in_ch = 0; in_ch < in_channels; ++ in_ch) {
-                                    output[b * output_N + (out_ch * out_size_r + r) * out_size_c + c] += weight[((out_ch * in_channels + in_ch) * kernel_size_r + kr) * kernel_size_c + kc] * input[b * input_N + (in_ch * size_r + input_r) * size_c + input_c];
+                                    output[output_idx] += weight[((out_ch * in_channels + in_ch) * kernel_size_r + kr) * kernel_size_c + kc] * input[b * input_N + (in_ch * size_r + input_r) * size_c + input_c];
                                 }
                             }
                         }
@@ -60,11 +61,24 @@ void conv_forward_cpu(double* input, double *output, double *weight, double *bia
     }
 }
 
-double* ConvolutionLayer :: cpu_forward(double *input, const int batch_size) {
+double* ConvolutionLayer :: cpu_im2col_forward(double *input, const int batch_size) {
+    double *im2col = cpu_im2col(input, batch_size, in_channels, out_channels, size_r, size_c, out_size_r, out_size_c, kernel_size_r, kernel_size_c, stride_r, stride_c, padding_r, padding_c);
+    double *output = cpu_gemm(im2col, h_weight, h_bias, batch_size, in_channels, out_channels, size_r, size_c, out_size_r, out_size_c, kernel_size_r, kernel_size_c);
+    free(im2col);
+    return output;
+}
+
+double* ConvolutionLayer :: cpu_basic_forward(double *input, const int batch_size) {
     double *output;
     output = (double *) malloc (sizeof(double) * batch_size * output_N);
     conv_forward_cpu(input, output, h_weight, h_bias, batch_size, in_channels, out_channels, size_r, size_c, out_size_r, out_size_c, kernel_size_r, kernel_size_c, stride_r, stride_c, padding_r, padding_c);
     return output;
+}
+
+double* ConvolutionLayer :: cpu_forward(double *input, const int batch_size) {
+    const long long workspace_size = 1ll * batch_size * out_channels * (out_size_r * out_size_c) * (in_channels * kernel_size_r * kernel_size_c);
+    if (workspace_size <= 100000000ll) return cpu_im2col_forward(input, batch_size);
+    else return cpu_basic_forward(input, batch_size);
 }
 
 // Convolution forward (weight) (basic, no optimization)
@@ -327,5 +341,54 @@ double* ConvolutionLayer :: cudnn_forward(cudnnHandle_t &handle, double *input, 
     cudaMalloc((void **)&output, sizeof(double) * batch_size * output_N);
     cudaMemset(output, 0, sizeof(double) * batch_size * output_N);
     conv_cudnn_forward(handle, input, output, weight, bias, batch_size, in_channels, out_channels, size_r, size_c, kernel_size_r, kernel_size_c, stride_r, stride_c, padding_r, padding_c, out_size_r, out_size_c);
+    return output;
+}
+
+double* cpu_im2col(double *input, const int batch_size, const int in_channels, const int out_channels, const int size_r, const int size_c, const int out_size_r, const int out_size_c, const int kernel_size_r, const int kernel_size_c, const int stride_r, const int stride_c, const int padding_r, const int padding_c) {
+    const int input_N = in_channels * size_r * size_c;
+    const int im2col_row = out_size_r * out_size_c;
+    const int im2col_col = in_channels * kernel_size_r * kernel_size_c;
+    double *output = (double*) malloc (sizeof(double) * batch_size * out_channels * im2col_row * im2col_col);
+    for (int b = 0; b < batch_size; ++ b) {
+        for (int out_ch = 0; out_ch < out_channels; ++ out_ch)
+            for (int r = 0; r < out_size_r; ++ r)
+                for (int c = 0; c < out_size_c; ++ c) {
+                    const int im2col_r = r * out_size_c + c;
+                    for (int in_ch = 0; in_ch < in_channels; ++ in_ch) {
+                        for (int kr = 0; kr < kernel_size_r; ++ kr) {
+                            for (int kc = 0; kc < kernel_size_c; ++ kc) {
+                                const int input_r = r * stride_r + kr - padding_r;
+                                const int input_c = c * stride_c + kc - padding_c;
+                                const int im2col_c = in_ch * kernel_size_r * kernel_size_c + kr * kernel_size_c + kc;
+                                if (input_r >= 0 && input_r < size_r && input_c >= 0 && input_c < size_c) {
+                                    output[(b * out_channels + out_ch) * im2col_row * im2col_col + im2col_r * im2col_col + im2col_c] = input[b * input_N + (in_ch * size_r + input_r) * size_c + input_c];
+                                } else output[(b * out_channels + out_ch) * im2col_row * im2col_col + im2col_r * im2col_col + im2col_c] = 0;
+                            }
+                        }
+                    }
+                }
+    }
+    return output;
+}
+
+// (B * C * N * K) * (C * K) = (B * C * N)
+double *cpu_gemm(double *input, double *weight, double *bias, const int batch_size, const int in_channels, const int out_channels, const int size_r, const int size_c, const int out_size_r, const int out_size_c, const int kernel_size_r, const int kernel_size_c) {
+    const int output_N = out_channels * out_size_r * out_size_c;
+    const int im2col_row = out_size_r * out_size_c;
+    const int im2col_col = in_channels * kernel_size_r * kernel_size_c;
+    double *output = (double*) malloc (sizeof(double) * batch_size * output_N);
+    for (int b = 0; b < batch_size; ++ b) {
+        for (int out_ch = 0; out_ch < out_channels; ++ out_ch) {
+            for (int r = 0; r < out_size_r; ++ r)
+                for (int c = 0; c < out_size_c; ++ c) {
+                    const int im2col_r = r * out_size_c + c;
+                    const int output_idx = b * output_N + (out_ch * out_size_r + r) * out_size_c + c;
+                    output[output_idx] = bias[out_ch];
+                    for (int im2col_c = 0; im2col_c < im2col_col; ++ im2col_c) {
+                        output[output_idx] += input[(((b * out_channels + out_ch) * im2col_row + im2col_r) * im2col_col) + im2col_c] * weight[out_ch * im2col_col + im2col_c];
+                    }
+                }
+        }
+    }
     return output;
 }
