@@ -1,5 +1,3 @@
-
-   
 # include "conv.h"
 
 // Construction function of convolution layer.
