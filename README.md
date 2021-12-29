@@ -18,7 +18,7 @@ This is also the final project of course "CS433: Parallel and Distributed Comput
 
 Compile the source codes.
 
-```
+```bash
 cd src
 make
 cd ..
@@ -26,9 +26,9 @@ cd ..
 
 You may need to change the `nvcc` path in `src/makefile`. Different compile options are required for different architecture. We only provide compile options for our experiment architecture (Tesla V100, CUDA 10.2).
 
-Download data from [here], and put it in the `data` folder under the root directory of the repository. Then, you can test the inception code using the given model, input and output.
+Download data from [Baidu Netdisk](https://pan.baidu.com/s/1u5jJfNBL9m8prtRMRHuj7Q) (Verify code: csov), and put it in the `data` folder under the root directory of the repository. Then, you can test the inception code using the given model, input and output.
 
-```
+```bash
 cd test
 ./inception_main
 cd ..
