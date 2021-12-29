@@ -39,8 +39,9 @@ The experiment will run for approximately 10 minutes, which includes 5,000 infer
 | Implementation method | Average Inference Time |
 | :-: | :-: |
 | CPU | ~180,000 ms |
-| CUDNN | 228.03 ms |
-| Our CUDA Implementation | **155.98 ms** |
+| Our basic CUDA Implementaion | ~36,000 ms |
+| CUDNN | 80.851 ms |
+| Our CUDA Implementation | **57.424 ms** |
 
 The result show that our implementation is faster than the default implementation of CUDNN.
 
