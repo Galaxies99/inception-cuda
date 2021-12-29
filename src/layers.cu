@@ -104,26 +104,26 @@ double* InceptionLayer1 :: gpu_forward(double *input, const int batch_size) {
     cudaFree(slice2);
     
     // center processing
-    double* c_1_o = c_1.basic_forward(grid_conv, block_conv, input_new, batch_size);
+    double* c_1_o = c_1.implicit_im2col_forward(input_new, batch_size);
     relu(grid_act, block_act, c_1_o, batch_size * 32 * 149 * 149);
     cudaFree(input_new);
     
-    double* c_2_o = c_2.basic_forward(grid_conv, block_conv, c_1_o, batch_size);
+    double* c_2_o = c_2.implicit_im2col_forward(c_1_o, batch_size);
     relu(grid_act, block_act, c_2_o, batch_size * 32 * 147 * 147);
     cudaFree(c_1_o);
 
-    double* c_3_o = c_3.basic_forward(grid_conv, block_conv, c_2_o, batch_size);
+    double* c_3_o = c_3.implicit_im2col_forward(c_2_o, batch_size);
     relu(grid_act, block_act, c_3_o, batch_size * 64 * 147 * 147);
     cudaFree(c_2_o);
 
     double *maxpool_o = m1.basic_forward(grid_conv, block_conv, c_3_o, batch_size);
     cudaFree(c_3_o);
 
-    double* c_4_o = c_4.basic_forward(grid_conv, block_conv, maxpool_o, batch_size);
+    double* c_4_o = c_4.implicit_im2col_forward(maxpool_o, batch_size);
     relu(grid_act, block_act, c_4_o, batch_size * 80 * 73 * 73);
     cudaFree(maxpool_o);
     
-    double* c_5_o = c_5.basic_forward(grid_conv, block_conv, c_4_o, batch_size);
+    double* c_5_o = c_5.implicit_im2col_forward(c_4_o, batch_size);
     relu(grid_act, block_act, c_5_o, batch_size * 192 * 71 * 71);
     cudaFree(c_4_o);
     
@@ -250,26 +250,26 @@ double* InceptionLayer2 :: gpu_forward(double *input, const int batch_size) {
     dim3 grid_act(32);
     dim3 block_act(32);
     //way1
-    double *way1_o = way1.basic_forward(grid_conv, block_conv, input, batch_size);
+    double *way1_o = way1.implicit_im2col_forward(input, batch_size);
     relu(grid_act, block_act, way1_o, batch_size * 64 * size * size);
     //way2
-    double *way2_1_o = way2_1.basic_forward(grid_conv, block_conv, input, batch_size);
+    double *way2_1_o = way2_1.implicit_im2col_forward(input, batch_size);
     relu(grid_act, block_act, way2_1_o, batch_size * 48 * size * size);
-    double *way2_2_o = way2_2.basic_forward(grid_conv, block_conv, way2_1_o, batch_size);
+    double *way2_2_o = way2_2.implicit_im2col_forward(way2_1_o, batch_size);
     relu(grid_act, block_act, way2_2_o, batch_size * 64 * size * size);
     cudaFree(way2_1_o);
     //way3
-    double *way3_1_o = way3_1.basic_forward(grid_conv, block_conv, input, batch_size);
+    double *way3_1_o = way3_1.implicit_im2col_forward(input, batch_size);
     relu(grid_act, block_act, way3_1_o, batch_size * 64 * size * size);
-    double *way3_2_o = way3_2.basic_forward(grid_conv, block_conv, way3_1_o, batch_size);
+    double *way3_2_o = way3_2.implicit_im2col_forward(way3_1_o, batch_size);
     relu(grid_act, block_act, way3_2_o, batch_size * 96 * size * size);
-    double *way3_3_o = way3_3.basic_forward(grid_conv, block_conv, way3_2_o, batch_size);
+    double *way3_3_o = way3_3.implicit_im2col_forward(way3_2_o, batch_size);
     relu(grid_act, block_act, way3_3_o, batch_size * 96 * size * size);
     cudaFree(way3_1_o);
     cudaFree(way3_2_o);
     //way4
     double *way4_o1 = avgpool.basic_forward(grid_conv, block_conv, input, batch_size);
-    double *way4_o = way4.basic_forward(grid_conv, block_conv, way4_o1, batch_size);
+    double *way4_o = way4.implicit_im2col_forward(way4_o1, batch_size);
     relu(grid_act, block_act, way4_o, batch_size * way4_ch * size * size);
     cudaFree(way4_o1);
     //final
@@ -375,14 +375,14 @@ double* InceptionLayer3 :: gpu_forward(double *input, const int batch_size) {
     dim3 grid_act(32);
     dim3 block_act(32);
     //way1
-    double *way1_o = way1.basic_forward(grid_conv, block_conv, input, batch_size);
+    double *way1_o = way1.implicit_im2col_forward(input, batch_size);
     relu(grid_act, block_act, way1_o, batch_size * 384 * out_size * out_size);
     //way2
-    double *way2_1_o = way2_1.basic_forward(grid_conv, block_conv, input, batch_size);
+    double *way2_1_o = way2_1.implicit_im2col_forward(input, batch_size);
     relu(grid_act, block_act, way2_1_o, batch_size * 64 * size * size);
-    double *way2_2_o = way2_2.basic_forward(grid_conv, block_conv, way2_1_o, batch_size);
+    double *way2_2_o = way2_2.implicit_im2col_forward(way2_1_o, batch_size);
     relu(grid_act, block_act, way2_2_o, batch_size * 96 * size * size);
-    double *way2_3_o = way2_3.basic_forward(grid_conv, block_conv, way2_2_o, batch_size);
+    double *way2_3_o = way2_3.implicit_im2col_forward(way2_2_o, batch_size);
     relu(grid_act, block_act, way2_3_o, batch_size * 96 * out_size * out_size);
     cudaFree(way2_1_o);
     cudaFree(way2_2_o);
@@ -519,44 +519,44 @@ double* InceptionLayer4 :: gpu_forward(double *input, const int batch_size) {
     dim3 block_act(32);
 
     //way1
-    double *way1_o = way1.basic_forward(grid_conv, block_conv, input, batch_size);
+    double *way1_o = way1.implicit_im2col_forward(input, batch_size);
     relu(grid_act, block_act, way1_o, batch_size * 192 * out_size * out_size);
 
     //way2
-    double *way2_1_o = way2_1.basic_forward(grid_conv, block_conv, input, batch_size);
+    double *way2_1_o = way2_1.implicit_im2col_forward(input, batch_size);
     relu(grid_act, block_act, way2_1_o, batch_size * mid_channels * size * size);
 
-    double *way2_2_o = way2_2.basic_forward(grid_conv, block_conv, way2_1_o, batch_size);
+    double *way2_2_o = way2_2.implicit_im2col_forward(way2_1_o, batch_size);
     relu(grid_act, block_act, way2_2_o, batch_size * mid_channels * size * size);
     cudaFree(way2_1_o);
 
-    double *way2_3_o = way2_3.basic_forward(grid_conv, block_conv, way2_2_o, batch_size);
+    double *way2_3_o = way2_3.implicit_im2col_forward(way2_2_o, batch_size);
     relu(grid_act, block_act, way2_3_o, batch_size * 192 * out_size * out_size);
     cudaFree(way2_2_o);
     
     //way3
-    double *way3_1_o = way3_1.basic_forward(grid_conv, block_conv, input, batch_size);
+    double *way3_1_o = way3_1.implicit_im2col_forward(input, batch_size);
     relu(grid_act, block_act, way3_1_o, batch_size * mid_channels * size * size);
 
-    double *way3_2_o = way3_2.basic_forward(grid_conv, block_conv, way3_1_o, batch_size);
+    double *way3_2_o = way3_2.implicit_im2col_forward(way3_1_o, batch_size);
     relu(grid_act, block_act, way3_2_o, batch_size * mid_channels * size * size);
     cudaFree(way3_1_o);
 
-    double *way3_3_o = way3_3.basic_forward(grid_conv, block_conv, way3_2_o, batch_size);
+    double *way3_3_o = way3_3.implicit_im2col_forward(way3_2_o, batch_size);
     relu(grid_act, block_act, way3_3_o, batch_size * mid_channels * size * size);
     cudaFree(way3_2_o);
 
-    double *way3_4_o = way3_4.basic_forward(grid_conv, block_conv, way3_3_o, batch_size);
+    double *way3_4_o = way3_4.implicit_im2col_forward(way3_3_o, batch_size);
     relu(grid_act, block_act, way3_4_o, batch_size * mid_channels * size * size);
     cudaFree(way3_3_o);
 
-    double *way3_5_o = way3_5.basic_forward(grid_conv, block_conv, way3_4_o, batch_size);
+    double *way3_5_o = way3_5.implicit_im2col_forward(way3_4_o, batch_size);
     relu(grid_act, block_act, way3_5_o, batch_size * 192 * out_size * out_size);
     cudaFree(way3_4_o);
 
     //way4
     double *avg_o = meanpool.basic_forward(grid_conv, block_conv, input, batch_size);
-    double *way4_o = way4.basic_forward(grid_conv, block_conv, avg_o, batch_size);
+    double *way4_o = way4.implicit_im2col_forward(avg_o, batch_size);
     relu(grid_act, block_act, way4_o, batch_size * 192 * out_size * out_size);
     cudaFree(avg_o);
 
@@ -694,19 +694,19 @@ double* InceptionLayer5 :: gpu_forward(double *input, const int batch_size) {
     dim3 grid_act(32);
     dim3 block_act(32);
     // way1
-    double *way1_o1 = way1_1.basic_forward(grid_conv, block_conv, input, batch_size);
+    double *way1_o1 = way1_1.implicit_im2col_forward(input, batch_size);
     relu(grid_act, block_act, way1_o1, batch_size * 192 * size * size);
-    double *way1_o = way1_2.basic_forward(grid_conv, block_conv, way1_o1, batch_size);
+    double *way1_o = way1_2.implicit_im2col_forward(way1_o1, batch_size);
     relu(grid_act, block_act, way1_o, batch_size * 320 * out_size * out_size);
     cudaFree(way1_o1);
     // way2
-    double *way2_o1 = way2_1.basic_forward(grid_conv, block_conv, input, batch_size);
+    double *way2_o1 = way2_1.implicit_im2col_forward(input, batch_size);
     relu(grid_act, block_act, way2_o1, batch_size * 192 * size * size);
-    double *way2_o2 = way2_2.basic_forward(grid_conv, block_conv, way2_o1, batch_size);
+    double *way2_o2 = way2_2.implicit_im2col_forward(way2_o1, batch_size);
     relu(grid_act, block_act, way2_o2, batch_size * 192 * size * size);
-    double *way2_o3 = way2_3.basic_forward(grid_conv, block_conv, way2_o2, batch_size);
+    double *way2_o3 = way2_3.implicit_im2col_forward(way2_o2, batch_size);
     relu(grid_act, block_act, way2_o3, batch_size * 192 * size * size);
-    double *way2_o = way2_4.basic_forward(grid_conv, block_conv, way2_o3, batch_size);
+    double *way2_o = way2_4.implicit_im2col_forward(way2_o3, batch_size);
     relu(grid_act, block_act, way2_o, batch_size * 192 * out_size * out_size);
     cudaFree(way2_o1);
     cudaFree(way2_o2);
@@ -840,14 +840,14 @@ double* InceptionLayer6 :: gpu_forward(double *input, const int batch_size) {
     dim3 grid_act(32);
     dim3 block_act(32);
     // way1
-    double *way1_o = way1.basic_forward(grid_conv, block_conv, input, batch_size);
+    double *way1_o = way1.implicit_im2col_forward(input, batch_size);
     relu(grid_act, block_act, way1_o, batch_size * 320 * size * size);
     // way2 & way3
-    double *way23_o1 = way23_1.basic_forward(grid_conv, block_conv, input, batch_size);
+    double *way23_o1 = way23_1.implicit_im2col_forward(input, batch_size);
     relu(grid_act, block_act, way23_o1, batch_size * 384 * size * size);
-    double *way2_o2 = way2_2.basic_forward(grid_conv, block_conv, way23_o1, batch_size);
+    double *way2_o2 = way2_2.implicit_im2col_forward(way23_o1, batch_size);
     relu(grid_act, block_act, way2_o2, batch_size * 384 * size * size);
-    double *way3_o2 = way3_2.basic_forward(grid_conv, block_conv, way23_o1, batch_size);
+    double *way3_o2 = way3_2.implicit_im2col_forward(way23_o1, batch_size);
     relu(grid_act, block_act, way3_o2, batch_size * 384 * size * size);
     double *concat_in1[] = {way2_o2, way3_o2};
     int concat_ch1[] = {384, 384};
@@ -856,13 +856,13 @@ double* InceptionLayer6 :: gpu_forward(double *input, const int batch_size) {
     cudaFree(way2_o2);
     cudaFree(way3_o2);
     // way4 & way5
-    double *way45_o1 = way45_1.basic_forward(grid_conv, block_conv, input, batch_size);
+    double *way45_o1 = way45_1.implicit_im2col_forward(input, batch_size);
     relu(grid_act, block_act, way45_o1, batch_size * 448 * size * size);
-    double *way45_o2 = way45_2.basic_forward(grid_conv, block_conv, way45_o1, batch_size);
+    double *way45_o2 = way45_2.implicit_im2col_forward(way45_o1, batch_size);
     relu(grid_act, block_act, way45_o2, batch_size * 384 * size * size);
-    double *way4_o3 = way4_3.basic_forward(grid_conv, block_conv, way45_o2, batch_size);
+    double *way4_o3 = way4_3.implicit_im2col_forward(way45_o2, batch_size);
     relu(grid_act, block_act, way4_o3, batch_size * 384 * size * size);
-    double *way5_o3 = way5_3.basic_forward(grid_conv, block_conv, way45_o2, batch_size);
+    double *way5_o3 = way5_3.implicit_im2col_forward(way45_o2, batch_size);
     relu(grid_act, block_act, way5_o3, batch_size * 384 * size * size);
     double *concat_in2[] = {way4_o3, way5_o3};
     int concat_ch2[] = {384, 384};
@@ -873,7 +873,7 @@ double* InceptionLayer6 :: gpu_forward(double *input, const int batch_size) {
     cudaFree(way5_o3);
     // way6
     double *way6_o1 = avgpool.basic_forward(grid_conv, block_conv, input, batch_size);
-    double *way6_o = way6.basic_forward(grid_conv, block_conv, way6_o1, batch_size);
+    double *way6_o = way6.implicit_im2col_forward(way6_o1, batch_size);
     relu(grid_act, block_act, way6_o, batch_size * 192 * size * size);
     cudaFree(way6_o1);
     // final
@@ -972,7 +972,7 @@ double* InceptionOutputLayer :: gpu_forward(double *input, const int batch_size)
     dim3 grid_conv(8, batch_size);
     dim3 block_conv(32);
     double *avg_o = avgpool.basic_forward(grid_conv, block_conv, input, batch_size);
-    double *final = fc.basic_forward(grid_conv, block_conv, avg_o, batch_size);
+    double *final = fc.opt_forward(grid_conv, block_conv, avg_o, batch_size);
     cudaFree(avg_o);
     return final;
 }

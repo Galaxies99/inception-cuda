@@ -9,7 +9,7 @@
 # define INPUTSHAPE 3 * 299 * 299
 # define OUTPUTSHAPE 1000
 # define TESTNUM 10
-# define ITERNUM 5
+# define ITERNUM 500
 double inputArr[TESTNUM][INPUTSHAPE];
 double benchOutArr[TESTNUM][OUTPUTSHAPE];
 
