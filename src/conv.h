@@ -9,6 +9,8 @@
 # include "cudnn_utils.h"
 # include "cuda_runtime.h"
 
+const int TILE_WIDTH = 16;
+
 // Convolution
 class ConvolutionLayer {
     private:
@@ -21,6 +23,7 @@ class ConvolutionLayer {
     public:
         ConvolutionLayer(int _in_channels, int _out_channels, int _size_r, int _size_c, int _kernel_size_r = 1, int _kernel_size_c = 1, int _stride_r = 1, int _stride_c = 1, int _padding_r = 0, int _padding_c = 0);
         double* basic_forward(dim3 grid, dim3 block, double *input, const int batch_size);
+        double* implicit_im2col_forward(double *input, const int batch_size);
         double* cpu_im2col_forward(double *input, const int batch_size);
         double* cpu_basic_forward(double *input, const int batch_size);
         double* cpu_forward(double *input, const int batch_size);
@@ -42,4 +45,5 @@ double* cpu_im2col(double *input, const int batch_size, const int in_channels, c
 
 double *cpu_gemm(double *input, double *weight, double *bias, const int batch_size, const int in_channels, const int out_channels, const int size_r, const int size_c, const int out_size_r, const int out_size_c, const int kernel_size_r, const int kernel_size_c);
 
+__global__ void conv_forward_implicit_im2col(double *input, double *output, double *weight, double *bias, const int batch_size, const int in_channels, const int out_channels, const int size_r, const int size_c, const int out_size_r, const int out_size_c, const int kernel_size_r, const int kernel_size_c, const int stride_r, const int stride_c, const int padding_r, const int padding_c);
 # endif

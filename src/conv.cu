@@ -346,49 +346,90 @@ double* ConvolutionLayer :: cudnn_forward(cudnnHandle_t &handle, double *input, 
 
 double* cpu_im2col(double *input, const int batch_size, const int in_channels, const int out_channels, const int size_r, const int size_c, const int out_size_r, const int out_size_c, const int kernel_size_r, const int kernel_size_c, const int stride_r, const int stride_c, const int padding_r, const int padding_c) {
     const int input_N = in_channels * size_r * size_c;
-    const int im2col_row = out_size_r * out_size_c;
-    const int im2col_col = in_channels * kernel_size_r * kernel_size_c;
-    double *output = (double*) malloc (sizeof(double) * batch_size * out_channels * im2col_row * im2col_col);
-    for (int b = 0; b < batch_size; ++ b) {
-        for (int out_ch = 0; out_ch < out_channels; ++ out_ch)
-            for (int r = 0; r < out_size_r; ++ r)
-                for (int c = 0; c < out_size_c; ++ c) {
-                    const int im2col_r = r * out_size_c + c;
-                    for (int in_ch = 0; in_ch < in_channels; ++ in_ch) {
-                        for (int kr = 0; kr < kernel_size_r; ++ kr) {
-                            for (int kc = 0; kc < kernel_size_c; ++ kc) {
-                                const int input_r = r * stride_r + kr - padding_r;
-                                const int input_c = c * stride_c + kc - padding_c;
-                                const int im2col_c = in_ch * kernel_size_r * kernel_size_c + kr * kernel_size_c + kc;
-                                if (input_r >= 0 && input_r < size_r && input_c >= 0 && input_c < size_c) {
-                                    output[(b * out_channels + out_ch) * im2col_row * im2col_col + im2col_r * im2col_col + im2col_c] = input[b * input_N + (in_ch * size_r + input_r) * size_c + input_c];
-                                } else output[(b * out_channels + out_ch) * im2col_row * im2col_col + im2col_r * im2col_col + im2col_c] = 0;
-                            }
+    const int im2col_row = in_channels * kernel_size_r * kernel_size_c;
+    const int im2col_col = out_size_r * out_size_c;
+    double *output = (double*) malloc (sizeof(double) * batch_size * im2col_row * im2col_col);
+    for (int b = 0; b < batch_size; ++ b) 
+        for (int in_ch = 0; in_ch < in_channels; ++ in_ch) 
+            for (int kr = 0; kr < kernel_size_r; ++ kr)
+                for (int kc = 0; kc < kernel_size_c; ++ kc) 
+                    for (int r = 0; r < out_size_r; ++ r)
+                        for (int c = 0; c < out_size_c; ++ c) {
+                            const int im2col_r = in_ch * kernel_size_r * kernel_size_c + kr * kernel_size_c + kc;
+                            const int im2col_c = r * out_size_c + c;
+                            const int input_r = r * stride_r + kr - padding_r;
+                            const int input_c = c * stride_c + kc - padding_c;
+                            if (input_r >= 0 && input_r < size_r && input_c >= 0 && input_c < size_c) 
+                                output[b * im2col_row * im2col_col + im2col_r * im2col_col + im2col_c] = input[b * input_N + (in_ch * size_r + input_r) * size_c + input_c];
+                            else output[b * im2col_row * im2col_col + im2col_r * im2col_col + im2col_c] = 0;
                         }
-                    }
-                }
-    }
+
     return output;
 }
 
-// (B * C * N * K) * (C * K) = (B * C * N)
 double *cpu_gemm(double *input, double *weight, double *bias, const int batch_size, const int in_channels, const int out_channels, const int size_r, const int size_c, const int out_size_r, const int out_size_c, const int kernel_size_r, const int kernel_size_c) {
     const int output_N = out_channels * out_size_r * out_size_c;
-    const int im2col_row = out_size_r * out_size_c;
-    const int im2col_col = in_channels * kernel_size_r * kernel_size_c;
+    const int im2col_row = in_channels * kernel_size_r * kernel_size_c;
+    const int im2col_col = out_size_r * out_size_c;
     double *output = (double*) malloc (sizeof(double) * batch_size * output_N);
     for (int b = 0; b < batch_size; ++ b) {
         for (int out_ch = 0; out_ch < out_channels; ++ out_ch) {
             for (int r = 0; r < out_size_r; ++ r)
                 for (int c = 0; c < out_size_c; ++ c) {
-                    const int im2col_r = r * out_size_c + c;
+                    const int im2col_c = r * out_size_c + c;
                     const int output_idx = b * output_N + (out_ch * out_size_r + r) * out_size_c + c;
                     output[output_idx] = bias[out_ch];
-                    for (int im2col_c = 0; im2col_c < im2col_col; ++ im2col_c) {
-                        output[output_idx] += input[(((b * out_channels + out_ch) * im2col_row + im2col_r) * im2col_col) + im2col_c] * weight[out_ch * im2col_col + im2col_c];
-                    }
+                    for (int im2col_r = 0; im2col_r < im2col_row; ++ im2col_r)
+                        output[output_idx] += input[(b * im2col_row + im2col_r) * im2col_col + im2col_c] * weight[out_ch * im2col_row + im2col_r];
                 }
         }
     }
+    return output;
+}
+
+__global__ void conv_forward_implicit_im2col(double *input, double *output, double *weight, double *bias, const int batch_size, const int in_channels, const int out_channels, const int size_r, const int size_c, const int out_size_r, const int out_size_c, const int kernel_size_r, const int kernel_size_c, const int stride_r, const int stride_c, const int padding_r, const int padding_c) {
+    const int im2col_row = in_channels * kernel_size_r * kernel_size_c;
+    const int im2col_col = out_size_r * out_size_c;
+    __shared__ double _kernel_tile_[TILE_WIDTH][TILE_WIDTH];
+    __shared__ double _input_tile_[TILE_WIDTH][TILE_WIDTH];
+    const int batch_idx = blockIdx.z;
+    const int bx = blockIdx.x;
+    const int by = blockIdx.y;
+    const int tx = threadIdx.x;
+    const int ty = threadIdx.y;
+    const int out_ch = by * TILE_WIDTH + ty;
+    const int im2col_c = bx * TILE_WIDTH + tx;
+    const int out_c = im2col_c % out_size_c;
+    const int out_r = (im2col_c / out_size_c) % out_size_r;
+    int ito = (im2col_row / TILE_WIDTH) + (im2col_row % TILE_WIDTH != 0);
+    double value = bias[out_ch];
+    for (int i = 0; i < ito; ++ i) {
+        const int im2col_r = i * TILE_WIDTH + ty;
+        const int kc = im2col_r % kernel_size_c;
+        const int kr = (im2col_r / kernel_size_c) % kernel_size_r;
+        const int in_ch = (im2col_r / kernel_size_c / kernel_size_r) % in_channels;
+        const int input_r = out_r * stride_r + kr - padding_r;
+        const int input_c = out_c * stride_c + kc - padding_c; 
+        if (i * TILE_WIDTH + tx >= im2col_row) _kernel_tile_[ty][tx] = 0;
+        else _kernel_tile_[ty][tx] = weight[out_ch * im2col_row + i * TILE_WIDTH + tx];
+        if (im2col_r >= im2col_row || input_r < 0 || input_r >= size_r || input_c < 0 || input_c >= size_c) _input_tile_[ty][tx] = 0;
+        else _input_tile_[ty][tx] = input[((batch_idx * in_channels + in_ch) * size_r + input_r) * size_c + input_c];
+        __syncthreads();
+        for (int k = 0; k < TILE_WIDTH; ++ k)
+            value += _kernel_tile_[ty][k] * _input_tile_[k][tx];
+        __syncthreads();
+    }
+    if (out_ch < out_channels && im2col_c < im2col_col)output[((batch_idx * out_channels + out_ch) * out_size_r + out_r) * out_size_c + out_c] = value;
+}
+
+double* ConvolutionLayer :: implicit_im2col_forward(double *input, const int batch_size) {
+    double *output;
+    cudaMalloc((void **)&output, sizeof(double) * batch_size * output_N);
+    cudaMemset(output, 0, sizeof(double) * batch_size * output_N);
+    const int dimy = out_channels / TILE_WIDTH + (out_channels % TILE_WIDTH != 0);
+    const int dimx = (out_size_r * out_size_c) / TILE_WIDTH + ((out_size_r * out_size_c) % TILE_WIDTH != 0);
+    dim3 grid(dimx, dimy, batch_size), block(TILE_WIDTH, TILE_WIDTH);
+    conv_forward_implicit_im2col <<<grid, block>>> (input, output, weight, bias, batch_size, in_channels, out_channels, size_r, size_c, out_size_r, out_size_c, kernel_size_r, kernel_size_c, stride_r, stride_c, padding_r, padding_c);
+    cudaDeviceSynchronize();
     return output;
 }

@@ -2,6 +2,6 @@
 
 
 double init_rand(void) {
-    return 0.05f - double(rand()) / double(RAND_MAX) / 10;
+    return 0.5f - double(rand()) / double(RAND_MAX);
 }
 
