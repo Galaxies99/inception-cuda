@@ -104,6 +104,6 @@ int main()
         }
         checkOutput(benchOutArr[i], inferOut);
     }
-    printf("Average Time is: %f\n", (sumTime / TESTNUM / ITERNUM));
+    printf("Average Time is: %f ms\n", (sumTime / TESTNUM / ITERNUM));
     return 0;
 }
