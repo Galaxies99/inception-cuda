@@ -417,7 +417,8 @@ __global__ void conv_forward_implicit_im2col(double *input, double *output, doub
             value += _kernel_tile_[ty][k] * _input_tile_[k][tx];
         __syncthreads();
     }
-    if (out_ch < out_channels && im2col_c < im2col_col)output[((batch_idx * out_channels + out_ch) * out_size_r + out_r) * out_size_c + out_c] = value;
+    if (out_ch < out_channels && im2col_c < im2col_col) 
+        output[((batch_idx * out_channels + out_ch) * out_size_r + out_r) * out_size_c + out_c] = value;
 }
 
 double* ConvolutionLayer :: implicit_im2col_forward(double *input, const int batch_size) {
