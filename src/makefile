@@ -17,6 +17,7 @@ all:
 
 clean:
 	rm ../test/inception_main
+	rm ../test/inception_cudnn
 	rm ../test/test_layer1
 	rm ../test/test_layer2
 	rm ../test/test_layer3
