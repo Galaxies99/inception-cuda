@@ -4,10 +4,11 @@
 # include <stdlib.h>
 # include <stdio.h>
 # include <iostream>
+# include <sys/time.h>
 
 using namespace std;
 
-int batch_size = 1, in_channels = 20, out_channels = 20, in_size_r = 80, in_size_c = 80, kernel_r = 3, kernel_c = 3, stride_r = 1, stride_c = 1, padding_r = 2, padding_c = 2;
+int batch_size = 4, in_channels = 16, out_channels = 16, in_size_r = 128, in_size_c = 128, kernel_r = 3, kernel_c = 3, stride_r = 1, stride_c = 1, padding_r = 1, padding_c = 1;
 ConvolutionLayer conv(in_channels, out_channels, in_size_r, in_size_c, kernel_r, kernel_c, stride_r, stride_c, padding_r, padding_c);
 
 int main() {
@@ -19,7 +20,13 @@ int main() {
     for (int i = 0; i < batch_size * in_channels * in_size_r * in_size_c; ++ i)
         input[i] = (double) (rand() % 32768) / 32768.0;
     
+    timeval start_, end_;
+    float duration = 0;
+    gettimeofday(&start_, 0);
     double *cpu_output = conv.cpu_forward(input, batch_size);
+    gettimeofday(&end_, 0);
+    duration = (end_.tv_sec - start_.tv_sec) * 1e6 + (end_.tv_usec - start_.tv_usec);
+    cout << "Time of CPU: " << duration / 1000 << " ms.\n";
 
     dim3 grid(8, batch_size);
     dim3 block(32);

@@ -3,6 +3,7 @@
 # include <stdlib.h>
 # include <stdio.h>
 # include <iostream>
+# include <sys/time.h>
 using namespace std;
 
 int batch_size = 4, in_features = 2048, out_features = 1000;
@@ -14,7 +15,13 @@ int main() {
     for (int i = 0; i < batch_size * in_features; ++i)
         input[i] = (double) (rand() % 32768) / 32768.0;
     
+    timeval start_, end_;
+    float duration = 0;
+    gettimeofday(&start_, 0);
     double *cpu_output = fc.cpu_forward(input, batch_size);
+    gettimeofday(&end_, 0);
+    duration = (end_.tv_sec - start_.tv_sec) * 1e6 + (end_.tv_usec - start_.tv_usec);
+    cout << "Time of CPU: " << duration / 1000 << " ms.\n";
 
     dim3 grid(32, batch_size);
     dim3 block(32);
