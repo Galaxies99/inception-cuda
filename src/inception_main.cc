@@ -48,7 +48,7 @@ void checkOutput(double *out1, double *out2)
 
 
 Inception initModel() {
-    return load_weights_from_json("../data/inceptionV3.json", true);
+    return load_weights_from_json("../data/inceptionV3.json");
 }
 
 void inference(Inception &net, double *input, double *output) {

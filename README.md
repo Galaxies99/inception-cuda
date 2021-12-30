@@ -36,14 +36,19 @@ cd ..
 
 The experiment will run for approximately 10 minutes, which includes 5,000 inference experiments. Here are some experiment statistics.
 
-| Implementation method | Average Inference Time |
-| :-: | :-: |
-| CPU | ~180,000 ms |
-| Our basic CUDA Implementaion | ~36,000 ms |
-| CUDNN | 80.851 ms |
-| Our CUDA Implementation | **57.424 ms** |
+| Implementation method | Average Inference Time | Max GPU occupation |
+| :-: | :-: | :-: |
+| CPU | ~180,000 ms | - |
+| Our basic CUDA Implementaion | ~36,000 ms | **530 MB** |
+| CUDNN | 102.594 ms | 750 MB |
+| Our CUDA Implementation | **61.096 ms** | **530 MB** | 
 
 The result show that our implementation is faster than the default implementation of CUDNN.
+
+<table>
+  <tr><td><img src='assets/images/test_our.png' width=480px></td><td><img src='assets/images/test_cudnn.png' width = 480px></td></tr>
+  <tr><td align="center"> Test result of our implementations</td><td align="center"> Test result of our CUDNN implementations </td></tr>
+</table>
 
 ## Reference
 
