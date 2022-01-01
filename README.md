@@ -1,5 +1,7 @@
 # Inception-v3 Inference Booster
 
+[[Report](assets/inceptionv3-inference-booster.pdf)]
+
 **Authors**: [Hongjie Fang](https://github.com/galaxies99/), [Peishen Yan](https://github.com/koalayan/), [Haoran Zhao](https://github.com/zhao-hr/).
 
 This is the inference booster of the InceptionV3[1] model. Features includes:
